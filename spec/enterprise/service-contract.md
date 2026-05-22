@@ -6,7 +6,7 @@ Service definition for smart contract interaction.
 
 ```
 namespace enterprise.service.contract
-requires common
+requires ledger, consensus-node.client
 
 ParamSupplier<$$SolidityType> {
     $$SolidityType getNativeContractValue()
@@ -19,7 +19,11 @@ Param<$$LangType, $$SolidityType> {
 }
 
 ContractCallResult {
-    //TODO: Provide a good and extentsible way to receive 0-N of the possible return types
+    @@immutable uint8 size;
+    
+    type getType(index:uint8)
+    
+    any get(index:uint8)
 }
 
 SmartContractService {
