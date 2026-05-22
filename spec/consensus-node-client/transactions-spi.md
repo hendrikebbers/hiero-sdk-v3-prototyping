@@ -15,28 +15,24 @@ In the `TransactionBuilder`/`Transaction` model, the domain-specific type is the
 ## API Schema
 
 ```
-namespace transactionsSpi
-requires transactions, grpc, hieroProto
+namespace consensus-node.transactions.spi
+requires consensus-node.transactions, grpc, consensus-node.proto
 
-// TransactionSupport is the interface that must be implemented per custom transaction type.
-// $$Record is intentionally absent as a generic parameter: records are always the universal
-// Record<$$Receipt> type with no named subtypes. The convert method below returns Record<$$Receipt>
-// directly — see the "Design Rationale" section of transactions.md for the reasoning.
-abstraction TransactionSupport<$$TransactionBuilder, $$Response, $$Receipt> {
+abstraction TransactionSupport<$$Receipt extends consensus-node.transactions.Receipt, $$Transaction extends consensus-node.transactions.Transaction<$$Receipt>> {
 
-    type getTransactionType() // defines the transaction builder type ($$TransactionBuilder) the concrete TransactionSupport implementation supports
+    type getTransactionType() 
 
-    grpc.MethodDescriptor getMethodDescriptor() // defines the gRPC method
+    grpc.MethodDescriptor getMethodDescriptor()
 
-    hieroProto.TransactionBody updateBody(transactionBuilder:$$TransactionBuilder, protoBody:hieroProto.TransactionBody) // updates a proto TransactionBody with the builder's domain fields
+    consensus-node.proto.TransactionBody updateBody(transaction:$$Transaction, protoBody:consensus-node.proto.TransactionBody) // updates the proto TransactionBody with the fields from the Transaction
 
-    $$TransactionBuilder convert(protoBody:hieroProto.TransactionBody) // converts a proto TransactionBody to a TransactionBuilder
+    $$Transaction create(protoBody:consensus-node.proto.TransactionBody) // creates a Transaction from a proto TransactionBody
 
-    $$Response convert(protoResponse:hieroProto.TransactionResponse) // converts a proto TransactionResponse to a Response
+    consensus-node.transactions.Response<$$Receipt> create(protoResponse:consensus-node.proto.TransactionResponse) // creates a Response from a proto TransactionResponse
 
-    $$Receipt convert(protoReceipt:hieroProto.TransactionReceipt) // converts a proto TransactionReceipt to a Receipt
+    $$Receipt create(protoReceipt:consensus-node.proto.TransactionReceipt) // creates a Receipt from a proto TransactionReceipt
 
-    transactions.Record<$$Receipt> convert(protoRecord:hieroProto.TransactionRecord) // converts a proto TransactionRecord to a Record
+    consensus-node.transactionsRecord<$$Receipt> create(protoRecord:consensus-node.proto.TransactionRecord) // creates a Record from a proto TransactionRecord
 }
 
 // factory methods that need to be implemented
@@ -46,7 +42,3 @@ set<TransactionSupport> getAllTransactionSupports() // returns all TransactionSu
 ```
 
 ## Questions & Comments
-
-- [@hendrikebbers](https://github.com/hendrikebbers): Do we have classes like `TransactionBody.Builder` for every language in the generated proto files?
-- [@hendrikebbers](https://github.com/hendrikebbers): Is `MethodDescriptor` specific for Java or is it the same for all languages?
-- [@hendrikebbers](https://github.com/hendrikebbers): Can we provide all information needed for `MethodDescriptor` in a custom complex type and by doing so remove the dependency to `grpc` in the public API?

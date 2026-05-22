@@ -6,13 +6,14 @@
 
 ```
 namespace mirrornode.contract
-requires common, keys
+
+requires ledger, keys
 
 @@finalType
 Contract {
-    @@immutable contractId: common.ContractId
+    @@immutable contractId: ledger.Address
     @@immutable @@nullable adminKey: keys.PublicKey
-    @@immutable @@nullable autoRenewAccount: common.AccountId
+    @@immutable @@nullable autoRenewAccount: ledger.Address
     @@immutable autoRenewPeriod: int32
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
@@ -31,12 +32,12 @@ Contract {
     @@immutable @@nullable runtimeBytecode: string
 }
 
-abstraction ContractRepository {
+ContractRepository {
     @@async @@throws(mirror-node-error)
     Page<Contract> findAll()
 
     @@async @@throws(mirror-node-error)
-    @@nullable Contract findById(contractId: ContractId)
+    @@nullable Contract findById(contractId: ledger.Address)
 }
 
 ```

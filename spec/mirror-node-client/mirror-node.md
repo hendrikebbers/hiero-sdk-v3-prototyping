@@ -9,7 +9,8 @@ It covers accounts, tokens, NFTs, transactions, topics, contracts, and network-l
 
 ```
 namespace mirrornode
-requires common, keys, mirrornode.contract, mirrornode.network
+
+requires ledger, keys, mirrornode.contract, mirrornode.network
 
 MirrorNodeClient {
     @@immutable contracts: ContractRepository
@@ -17,7 +18,7 @@ MirrorNodeClient {
 }
 
 @@throws(mirror-node-error)
-MirrorNodeClient createMirrorNodeClient(mirrorNode: common.MirrorNode)
+MirrorNodeClient createMirrorNodeClient(mirrorNode: ledger.MirrorNode)
 ```
 
 ## Example

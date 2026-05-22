@@ -6,7 +6,6 @@
 
 ```
 namespace mirrornode.network
-requires common, keys
 
 @@finalType
 ExchangeRate {
@@ -50,7 +49,7 @@ NetworkSupplies {
     @@immutable totalSupply: int256
 }
 
-abstraction NetworkRepository {
+NetworkRepository {
     @@async @@throws(mirror-node-error)
     @@nullable ExchangeRates exchangeRates()
 

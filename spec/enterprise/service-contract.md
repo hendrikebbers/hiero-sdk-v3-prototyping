@@ -24,11 +24,11 @@ ContractCallResult {
 
 SmartContractService {
 
-    @@throws(service-error) common.ContractId createContract(fileId:common.FileId, constructorParams:Param<ANY, ANY>...)
+    @@throws(service-error) ledger.Address createContract(fileId:ledger.Address, constructorParams:Param<ANY, ANY>...)
     
-    @@throws(service-error) common.ContractId createContract(contents:bytes, constructorParams:Param<ANY, ANY>...)
+    @@throws(service-error) ledger.Address createContract(contents:bytes, constructorParams:Param<ANY, ANY>...)
     
-    @@throws(service-error) ContractCallResult callContractFunction(contractId:common.ContractId, functionName:string, params:Param<ANY, ANY>...)
+    @@throws(service-error) ContractCallResult callContractFunction(contractId:ledger.Address, functionName:string, params:Param<ANY, ANY>...)
 }
 
 // Factory methods for params to wrap native types in solidity types
@@ -38,11 +38,15 @@ Param<string> ofBytes23(value:string)
 Param<bytes> ofBytes(value:bytes)
 Param<bytes> ofBytes23(value:bytes)
 Param<string> ofAddress(value:string)
-Param<common.Address> ofAddress(value:common.Address)
+Param<ledger.Address> ofAddress(value:ledger.Address)
 Param<boolean> ofBool(value:boolean)
 Param<uint8> uint8(value:uint8)
 Param<int8> int8(value:int8)
-//TODO
 Param<uint256> uint256(value:uint256)
 Param<int256> int256(value:int256)
+
+//Factory method to create Service (not needed for real framework integration where injection is used)
+SmartContractService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensus-node.client.Account)
+SmartContractService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensus-node.client.Account, transactionSigner: consensus-node.client.TransactionSigner)
+
 ```

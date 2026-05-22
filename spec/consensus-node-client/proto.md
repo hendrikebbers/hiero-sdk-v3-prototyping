@@ -9,7 +9,7 @@ The Protobuf messages of Hiero are used in each SDK to generate the GRPC stubs.
 Those stubs are language dependent and language specific tools are used to generate the stubs.
 
 ```
-namespace hieroProto
+namespace consensus-node.proto
 
 // Minimal placeholders to make external dependencies explicit in this draft.
 // Concrete protobuf fields are intentionally omitted and will be defined from hedera-protobufs.

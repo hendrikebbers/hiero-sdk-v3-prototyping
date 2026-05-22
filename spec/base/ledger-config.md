@@ -9,8 +9,8 @@ The config API provides functions to define and retrieve the configuration of a 
 ## API Schema
 
 ```
-namespace config
-requires common
+namespace ledger.config
+requires ledger
 
 constant HEDERA_MAINNET_IDENTIFIER:string = "hedera-mainnet" // identifier for the Hedera mainnet
 constant HEDERA_TESTNET_IDENTIFIER:string = "hedera-testnet" // identifier for the Hedera testnet
@@ -18,15 +18,15 @@ constant HEDERA_TESTNET_IDENTIFIER:string = "hedera-testnet" // identifier for t
 // The full configuration to connect to a specific network
 NetworkSetting {
  
-    @@immutable ledger: common.Ledger // the definition of the ledger
+    @@immutable ledger: ledger.Ledger // the definition of the ledger
    
     // Returns an immutable set of consensus nodes
     // Modifications to the returned set do not affect the original
-    @@immutable set<common.ConsensusNode> getConsensusNodes()
+    @@immutable set<ledger.ConsensusNode> getConsensusNodes()
 
     // Returns an immutable set of mirror nodes
     // Modifications to the returned set do not affect the original
-    @@immutable set<common.MirrorNode> getMirrorNodes()
+    @@immutable set<ledger.MirrorNode> getMirrorNodes()
 
 }
 
@@ -49,6 +49,3 @@ NetworkSetting setting = NetworkSetting.getNetworkSetting(HEDERA_TESTNET_IDENTIF
 ```
 
 ## Questions & Comments
-
-- [@hendrikebbers](https://github.com/hendrikebbers): Do we want to have mirror node information in the configuration at
-  all or should v3 do a concrete split between mirror node and consensus node?
