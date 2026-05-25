@@ -63,4 +63,6 @@ NetworkRepository {
     @@nullable NetworkSupplies supplies()
 }
 
+@static createRepository(mirrorNode: ledger.MirrorNode)
+
 ```

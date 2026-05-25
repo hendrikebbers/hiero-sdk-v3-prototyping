@@ -40,4 +40,6 @@ ContractRepository {
     @@nullable Contract findById(contractId: ledger.Address)
 }
 
+@static createRepository(mirrorNode: ledger.MirrorNode)
+
 ```

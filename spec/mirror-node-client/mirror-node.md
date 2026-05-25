@@ -10,13 +10,19 @@ It covers accounts, tokens, NFTs, transactions, topics, contracts, and network-l
 ```
 namespace mirrornode
 
-requires ledger, keys, mirrornode.contract, mirrornode.network
+requires ledger, keys, mirrornode.account, mirrornode.contract, mirrornode.network, mirrornode.nft, mirrornode.token, mirrornode.topic, mirrornode.transaction
 
 MirrorNodeClient {
+    @@immutable accounts: AccountRepository
     @@immutable contracts: ContractRepository
     @@immutable network: NetworkRepository
+    @@immutable network: NftRepository
+    @@immutable network: TokenRepository
+    @@immutable network: TopicRepository
+    @@immutable network: TransactionRepository    
 }
 
+@@static
 @@throws(mirror-node-error)
 MirrorNodeClient createMirrorNodeClient(mirrorNode: ledger.MirrorNode)
 ```

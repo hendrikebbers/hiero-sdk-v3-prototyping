@@ -84,11 +84,11 @@ Record<$$Receipt extends Receipt> {
 }
 
 // Factory methods for TransactionId
-TransactionId generateTransactionId(accountId:common.AccountId)
-@@throws(illegal-format) TransactionId fromString(transactionId:string)
+@@static TransactionId generateTransactionId(accountId:common.AccountId)
+@@throws(illegal-format) @@static TransactionId fromString(transactionId:string)
 
 // Factory methods for transaction loading
-Transaction<$$Receipt extends Receipt> fromBytes(transactionBytes: bytes)
+@@static Transaction<$$Receipt extends Receipt> fromBytes(transactionBytes: bytes)
 ```
 
 ## Examples

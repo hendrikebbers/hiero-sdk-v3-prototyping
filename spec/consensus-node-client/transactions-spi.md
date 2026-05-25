@@ -37,8 +37,9 @@ abstraction TransactionSupport<$$Receipt extends consensus-node.transactions.Rec
 
 // factory methods that need to be implemented
 
-@@throws(not-found-error) TransactionSupport getTransactionSupport(transactionType:type) // returns the TransactionSupport for the given transaction type
-set<TransactionSupport> getAllTransactionSupports() // returns all TransactionSupport instances
+@@throws(not-found-error) @@static TransactionSupport getTransactionSupport(transactionType:type) // returns the TransactionSupport for the given transaction type
+
+@@static set<TransactionSupport> getAllTransactionSupports() // returns all TransactionSupport instances
 ```
 
 ## Questions & Comments

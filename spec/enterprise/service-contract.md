@@ -50,7 +50,10 @@ Param<uint256> uint256(value:uint256)
 Param<int256> int256(value:int256)
 
 //Factory method to create Service (not needed for real framework integration where injection is used)
+@@static
 SmartContractService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensus-node.client.Account)
+
+@@static
 SmartContractService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensus-node.client.Account, transactionSigner: consensus-node.client.TransactionSigner)
 
 ```

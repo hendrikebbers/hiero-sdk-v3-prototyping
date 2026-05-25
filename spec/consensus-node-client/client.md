@@ -34,8 +34,8 @@ HieroClient {
 
 // factory methods of `HieroClient` that should be added to the namespace in the best language dependent way
 
-HieroClient createClient(networkSettings: ledger.config.NetworkSetting, Account: OperatorAccount)
-HieroClient createClient(networkSettings: ledger.config.NetworkSetting, Account: OperatorAccount, transactionSigner: TransactionSigner)
+@@static HieroClient createClient(networkSettings: ledger.config.NetworkSetting, Account: OperatorAccount)
+@@static HieroClient createClient(networkSettings: ledger.config.NetworkSetting, Account: OperatorAccount, transactionSigner: TransactionSigner)
 ```
 
 ## Examples

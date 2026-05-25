@@ -47,7 +47,7 @@ MirrorNode {
 // Parses Address from string format: "shard.realm.num" or "shard.realm.num-checksum"
 // @@throws(illegal-format) if format is invalid, values are negative, or parsing fails
 // Supports optional checksum suffix after dash
-@@throws(illegal-format) Address fromString(address: string)
+@@throws(illegal-format) @@static Address fromString(address: string)
 ```
 
 ## Questions & Comments
