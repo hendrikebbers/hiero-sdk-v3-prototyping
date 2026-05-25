@@ -6,11 +6,11 @@
 ## API Schema
 
 ```
-namespace consensus-node.transactions.transactionsAccounts
-requires native-token, ledger, consensus-node.transactions, keys
+namespace consensusnode.transactions.accounts
+requires native-token, ledger, consensusnode.transactions, keys
 
 @@finalType
-AccountCreateTransaction extends consensus-node.transactions.Transaction<AccountCreateReceipt> {
+AccountCreateTransaction extends consensusnode.transactions.Transaction<AccountCreateReceipt> {
     @@immutable key: keys.PublicKey
     @@immutable @@default(0) initialBalance: native-token.Hbar
     @@immutable @@nullable accountMemo: string
@@ -24,12 +24,12 @@ AccountCreateTransaction extends consensus-node.transactions.Transaction<Account
 }
 
 @@finalType
-AccountCreateReceipt extends consensus-node.transactions.Receipt {
+AccountCreateReceipt extends consensusnode.transactions.Receipt {
     @@immutable accountId: ledger.Address
 }
 
 @@finalType
-AccountUpdateTransaction extends consensus-node.transactions.Transaction<AccountUpdateReceipt> {
+AccountUpdateTransaction extends consensusnode.transactions.Transaction<AccountUpdateReceipt> {
     @@immutable accountId: ledger.Address                              // the account that is being updated
     @@immutable @@nullable key: keys.PublicKey                          // the new key (requires signatures with both old and new keys)
     @@immutable @@nullable accountMemo: string
@@ -43,17 +43,17 @@ AccountUpdateTransaction extends consensus-node.transactions.Transaction<Account
 }
 
 @@finalType
-AccountUpdateReceipt extends consensus-node.transactions.Receipt {
+AccountUpdateReceipt extends consensusnode.transactions.Receipt {
 }
 
 @@finalType
-AccountDeleteTransaction extends consensus-node.transactions.Transaction<AccountDeleteReceipt> {
+AccountDeleteTransaction extends consensusnode.transactions.Transaction<AccountDeleteReceipt> {
     @@immutable accountId: ledger.Address                              // the account that is being deleted (must sign)
     @@immutable transferAccountId: ledger.Address                       // the account that receives the remaining hbar balance
 }
 
 @@finalType
-AccountDeleteReceipt extends consensus-node.transactions.Receipt {
+AccountDeleteReceipt extends consensusnode.transactions.Receipt {
 }
 ```
 

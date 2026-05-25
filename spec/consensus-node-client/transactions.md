@@ -7,8 +7,8 @@ This section defines the API for transactions.
 ## API Schema
 
 ```
-namespace consensus-node.transactions
-requires ledger, keys, consensus-node.client
+namespace consensusnode.transactions
+requires ledger, keys, consensusnode.client
 
 // Defines the status of a transaction. Since we can have custom transaction types based on custom
 // services in the consensus node we cannot use an enum here anymore.

@@ -10,7 +10,7 @@ A client defines a concrete network connection to a specific network with a spec
 ## API Schema
 
 ```
-namespace consensus-node.client
+namespace consensusnode.client
 requires ledger, ledger.config, keys
 
 // Definition of an account that signs and pays for requests
