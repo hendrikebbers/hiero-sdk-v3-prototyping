@@ -6,11 +6,12 @@ Service definition for account handling.
 
 ```
 namespace enterprise.service.account
-requires ledger, hbar, consensusnode.client
+requires common, ledger, hbar, consensusnode.client
 
 AccountInformation {
     @@immutable accountId: ledger.Address
     @@immutable balance: hbar.Hbar
+    @@immutable key: keys.PublicKey
 }
 
 AccountService {
@@ -24,6 +25,8 @@ AccountService {
   @@throws(service-error) void deleteAccount(account: ledger.Address)
 
   @@throws(service-error) AccountInformation findById(account: ledger.Address)
+  
+  @@throws(service-error) common.Page<AccountInformation> findAll()
 }
 
 //Factory method to create Service (not needed for real framework integration where injection is used)
