@@ -7,7 +7,7 @@
 ## API Schema
 
 ```
-namespace native-token
+namespace hbar
 
 // Definition of different units of Hbar
 enum HbarUnit {

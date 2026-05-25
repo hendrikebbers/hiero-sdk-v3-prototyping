@@ -73,8 +73,8 @@ Response<$$Receipt extends Receipt> {
 abstract Receipt {
   @@immutable transactionId: TransactionId     // the id of the transaction
   @@immutable status: TransactionStatus        // the status of the transaction
-  @@immutable exchangeRate: native-token.HBarExchangeRate     // the exchange rate at the time of the transaction
-  @@immutable nextExchangeRate: native-token.HBarExchangeRate // the next exchange rate
+  @@immutable exchangeRate: hbar.HBarExchangeRate     // the exchange rate at the time of the transaction
+  @@immutable nextExchangeRate: hbar.HBarExchangeRate // the next exchange rate
 }
 
 Record<$$Receipt extends Receipt> {
