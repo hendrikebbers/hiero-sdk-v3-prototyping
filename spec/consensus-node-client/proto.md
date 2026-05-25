@@ -10,6 +10,7 @@ Those stubs are language dependent and language specific tools are used to gener
 
 ```
 namespace consensusnode.proto
+requires proto
 
 // Minimal placeholders to make external dependencies explicit in this draft.
 // Concrete protobuf fields are intentionally omitted and will be defined from hedera-protobufs.
