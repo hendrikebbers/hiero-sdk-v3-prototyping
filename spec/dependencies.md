@@ -69,6 +69,10 @@ flowchart LR
         ent_service["enterprise.service ∅"]
         ent_account["…service.account"]
         ent_contract["…service.contract"]
+        ent_file["…service.file"]
+        ent_token["…service.token"]
+        ent_nft["…service.nft"]
+        ent_topic["…service.topic"]
     end
 
     %% base-internal
@@ -135,6 +139,21 @@ flowchart LR
     ent_contract --> ledger
     ent_contract --> ledger_config
     ent_contract --> cn_client
+    ent_file --> ledger
+    ent_file --> ledger_config
+    ent_file --> cn_client
+    ent_token --> ledger
+    ent_token --> ledger_config
+    ent_token --> keys
+    ent_token --> cn_client
+    ent_nft --> ledger
+    ent_nft --> ledger_config
+    ent_nft --> keys
+    ent_nft --> cn_client
+    ent_topic --> ledger
+    ent_topic --> ledger_config
+    ent_topic --> keys
+    ent_topic --> cn_client
 
     classDef base fill:#e8f0fe,stroke:#4285f4,color:#000;
     classDef consensus fill:#e6f4ea,stroke:#34a853,color:#000;
@@ -144,7 +163,7 @@ flowchart LR
     class common,grpc,proto,nativeToken,keys,ledger,ledger_config,hedera base;
     class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_proto,cn_proto_account consensus;
     class mn,mn_account,mn_common,mn_contract,mn_network,mn_nft,mn_token,mn_topic,mn_transaction mirror;
-    class ent_service,ent_account,ent_contract enterprise;
+    class ent_service,ent_account,ent_contract,ent_file,ent_token,ent_nft,ent_topic enterprise;
 ```
 
 `∅` marks namespaces that are still empty stubs (no types defined yet).
