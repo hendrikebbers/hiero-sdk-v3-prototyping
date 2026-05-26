@@ -27,7 +27,7 @@ Topic {
 
 @@finalType
 ChunkInfo {
-    @@immutable initialTransactionId: string
+    @@immutable initialTransactionId: ledger.TransactionId
     @@immutable nonce: int32
     @@immutable number: int32
     @@immutable total: int32

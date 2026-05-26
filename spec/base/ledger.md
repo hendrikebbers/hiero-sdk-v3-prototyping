@@ -31,6 +31,16 @@ Address {
     string toStringWithChecksum()
 }
 
+// Id of a transaction
+abstraction TransactionId {
+  @@immutable accountId:Address // the account that is the payer of the transaction
+  @@immutable validStart:zonedDateTime // the start time of the transaction
+  @@immutable @@nullable nonce:int32 // nonce of an internal transaction
+
+  string toString() // returns the transaction id as a string
+  string toStringWithChecksum() // returns the transaction id as a string with a checksum
+}
+
 // Represents a consensus node on a network.
 ConsensusNode {
     @@immutable ip: string // ip address of the node
@@ -49,6 +59,13 @@ MirrorNode {
 // @@throws(illegal-format) if format is invalid, values are negative, or parsing fails
 // Supports optional checksum suffix after dash
 @@throws(illegal-format) @@static Address fromString(address: string)
+
+// Factory methods for TransactionId
+@@static TransactionId generateTransactionId(accountId:common.AccountId)
+@@throws(illegal-format) @@static TransactionId fromString(transactionId:string)
+
+// Factory methods for transaction loading
+@@static Transaction<$$Receipt extends Receipt> fromBytes(transactionBytes: bytes)
 ```
 
 ## Questions & Comments

@@ -25,22 +25,12 @@ enum BasicTransactionStatus extends TransactionStatus {
     GRPC_WEB_PROXY_NOT_SUPPORTED
 }
 
-// Id of a transaction
-abstraction TransactionId {
-  @@immutable accountId:ledger.Address // the account that is the payer of the transaction
-  @@immutable validStart:zonedDateTime // the start time of the transaction
-  @@immutable @@nullable nonce:int32 // nonce of an internal transaction
-
-  string toString() // returns the transaction id as a string
-  string toStringWithChecksum() // returns the transaction id as a string with a checksum
-}
-
 abstraction Transaction<$$Receipt extends Receipt> {
   
   @@nullable @@immutable maxTransactionFee: nativeToken.NativeToken<ANY, ANY>
   @@nullable @@immutable validDuration: int64
   @@nullable @@immutable memo: string
-  @@nullable @@immutable transactionId: TransactionId
+  @@nullable @@immutable transactionId: ledger.TransactionId
   @@nullable @@immutable maxAttempts: int32
   @@nullable @@immutable maxBackoff: int64
   @@nullable @@immutable minBackoff: int64
@@ -64,31 +54,26 @@ abstraction Transaction<$$Receipt extends Receipt> {
 }
 
 Response<$$Receipt extends Receipt> {
-  @@immutable transactionId: TransactionId // the id of the transaction
+  @@immutable transactionId: ledger.TransactionId // the id of the transaction
 
   @@async $$Receipt queryReceipt()          // query for the receipt of the transaction
   @@async Record<$$Receipt> queryRecord()   // query for the record of the transaction
 }
 
 abstract Receipt {
-  @@immutable transactionId: TransactionId     // the id of the transaction
+  @@immutable transactionId: ledger.TransactionId     // the id of the transaction
   @@immutable status: TransactionStatus        // the status of the transaction
   @@immutable exchangeRate: nativeToken.ExchangeRate     // the exchange rate at the time of the transaction
   @@immutable nextExchangeRate: nativeToken.ExchangeRate // the next exchange rate
 }
 
 Record<$$Receipt extends Receipt> {
-  @@immutable transactionId: TransactionId          // the id of the transaction
+  @@immutable transactionId: ledger.TransactionId          // the id of the transaction
   @@immutable consensusTimestamp: zonedDateTime      // the consensus time of the transaction
   @@immutable receipt: $$Receipt                     // the typed receipt of the transaction
 }
 
-// Factory methods for TransactionId
-@@static TransactionId generateTransactionId(accountId:common.AccountId)
-@@throws(illegal-format) @@static TransactionId fromString(transactionId:string)
 
-// Factory methods for transaction loading
-@@static Transaction<$$Receipt extends Receipt> fromBytes(transactionBytes: bytes)
 ```
 
 ## Examples

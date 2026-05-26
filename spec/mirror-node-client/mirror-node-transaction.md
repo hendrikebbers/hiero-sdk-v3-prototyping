@@ -49,7 +49,7 @@ Transfer {
 
 @@finalType
 TransactionInfo {
-    @@immutable transactionId: string
+    @@immutable transactionId: ledger.TransactionId
     @@immutable transactionHash: bytes
     @@immutable chargedTxFee: int64
     @@immutable consensusTimestamp: zonedDateTime
@@ -84,7 +84,7 @@ abstraction TransactionRepository {
     Page<TransactionInfo> findByAccountAndModification(accountId: ledger.Address, modification: BalanceModification)
 
     @@async @@throws(mirror-node-error)
-    @@nullable TransactionInfo findById(transactionId: string)
+    @@nullable TransactionInfo findById(transactionId: ledger.TransactionId)
 }
 
 @static createRepository(mirrorNode: ledger.MirrorNode)
