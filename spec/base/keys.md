@@ -26,7 +26,6 @@ string result.
 
 ```
 namespace keys
-requires {ByteImportEncoding, KeyFormat} from keys.io
 
 // all key types
 enum KeyType {
@@ -110,8 +109,7 @@ PrivateKey extends Key {
 @@throws(illegal-format) @@static PrivateKey createPrivateKey(value: string) // reads string as PKCS#8 PEM
 @@throws(illegal-format) @@static PublicKey createPublicKey(value: string) // reads string as SPKI PEM
 
-namespace keys.io
-requires {KeyType} from keys
+// --- key import/export formats (formerly the keys.io sub-namespace) ---
 
 enum RawFormat {
     STRING, // string representation of the bytes in the specified encoding

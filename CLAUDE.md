@@ -32,7 +32,7 @@ spec/                           # The actual V3 public-API specifications, writt
     common.md (common)          #   Page<$$T> and other shared types
     ledger.md (ledger)          #   Ledger, Address, ConsensusNode, MirrorNode
     ledger-config.md (ledger.config)
-    keys.md (keys, keys.io)     #   Keys + key import/export (PKCS#8, SPKI, DER, PEM)
+    keys.md (keys)              #   Keys + key import/export (PKCS#8, SPKI, DER, PEM)
     native-token.md (nativeToken + hbar)  # NativeToken abstraction + Hedera-specific HBAR implementation
     grpc.md (grpc)
     proto.md (proto)

@@ -447,7 +447,7 @@ The following attribute annotations can be used on method return types: `@@nulla
 
 Namespaces can be used to group related data types and methods.
 Namespace names must use lowerCamelCase identifiers. Dot notation can be used for sub-namespaces (for example,
-`keys.io`). Hyphens are not allowed in namespace identifiers.
+`mirrornode.account`). Hyphens are not allowed in namespace identifiers.
 The following syntax should be used to define namespaces:
 
 ```
@@ -505,8 +505,9 @@ If two different namespaces export a type with the same simple name, the collisi
 reference with the namespace name using dot notation: `namespace.Type`. The qualified form therefore remains valid
 and is used only to disambiguate.
 
-This rule also applies to sub-namespaces: use `requires {KeyFormat} from keys.io` to reference `KeyFormat` from within
-the `keys` namespace, and `requires {KeyType} from keys` to reference `KeyType` from within `keys.io`.
+This rule also applies to sub-namespaces, which are imported like any other namespace: a child imports from its parent
+(e.g. `consensusnode.transactions.accounts` uses `requires {Transaction} from consensusnode.transactions`), and a
+parent imports from a child (e.g. `mirrornode` uses `requires {AccountRepository} from mirrornode.account`).
 
 ### Constants
 
