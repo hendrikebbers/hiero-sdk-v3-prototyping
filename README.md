@@ -68,8 +68,8 @@ Every spec under `spec/` is written in the meta-language defined in
 
 - Each file follows the skeleton: `## Description` → `## API Schema` → optional `## Examples` →
   `## Questions & Comments`.
-- The API schema declares a `namespace` and `requires` its dependencies; cross-namespace types are qualified
-  (e.g. `ledger.Address`).
+- The API schema declares a `namespace` and imports the types it uses with `requires {Type} from namespace`
+  (one statement per source namespace); imported types are then referenced by their simple name (e.g. `Address`).
 - Fields are **immutable by default** (`@@immutable`); collections are never nullable; the `ANY` top type is avoided
   as a standalone type.
 - Naming: types `PascalCase`, fields/methods `lowerCamelCase`, enum values & constants `UPPER_SNAKE_CASE`, namespaces

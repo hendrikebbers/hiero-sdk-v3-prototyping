@@ -6,11 +6,12 @@
 
 ```
 namespace mirrornode.token
-requires ledger, keys, mirrornode.common
+requires {Address, MirrorNode} from ledger
+requires {RoyaltyFee} from mirrornode.common
 
 @@finalType
 Balance {
-    @@immutable accountId: ledger.Address
+    @@immutable accountId: Address
     @@immutable balance: int64
     @@immutable decimals: int64
 }
@@ -20,16 +21,16 @@ RoyaltyFee {
     @@immutable numeratorAmount: int64
     @@immutable denominatorAmount: int64
     @@immutable fallbackFeeAmount: int64
-    @@immutable @@nullable collectorAccountId: ledger.Address
-    @@immutable @@nullable denominatingTokenId: ledger.Address
+    @@immutable @@nullable collectorAccountId: Address
+    @@immutable @@nullable denominatingTokenId: Address
 }
 
 @@finalType
 FractionalFee {
     @@immutable numeratorAmount: int64
     @@immutable denominatorAmount: int64
-    @@immutable @@nullable collectorAccountId: ledger.Address
-    @@immutable @@nullable denominatingTokenId: ledger.Address
+    @@immutable @@nullable collectorAccountId: Address
+    @@immutable @@nullable denominatingTokenId: Address
 }
 
 
@@ -37,7 +38,7 @@ FractionalFee {
 CustomFee {
     @@immutable fixedFees: list<FixedFee>
     @@immutable fractionalFees: list<FractionalFee>
-    @@immutable royaltyFees: list<mirrornode.common.RoyaltyFee>
+    @@immutable royaltyFees: list<RoyaltyFee>
 }
 
 enum TokenSupplyType {
@@ -53,7 +54,7 @@ enum TokenType {
 
 @@finalType
 TokenInfo {
-    @@immutable tokenId: ledger.Address
+    @@immutable tokenId: Address
     @@immutable type: TokenType
     @@immutable name: string
     @@immutable symbol: string
@@ -67,14 +68,14 @@ TokenInfo {
     @@immutable initialSupply: int256
     @@immutable totalSupply: int256
     @@immutable maxSupply: int256
-    @@immutable treasuryAccountId: ledger.Address
+    @@immutable treasuryAccountId: Address
     @@immutable deleted: bool
     @@immutable customFees: CustomFee
 }
 
 @@finalType
 Token {
-    @@immutable @@nullable tokenId: ledger.Address
+    @@immutable @@nullable tokenId: Address
     @@immutable name: string
     @@immutable symbol: string
     @@immutable type: TokenType
@@ -85,18 +86,18 @@ Token {
 
 abstraction TokenRepository {
     @@async @@throws(mirror-node-error)
-    Page<Token> findByAccount(accountId: ledger.Address)
+    Page<Token> findByAccount(accountId: Address)
 
     @@async @@throws(mirror-node-error)
-    @@nullable TokenInfo findById(tokenId: ledger.Address)
+    @@nullable TokenInfo findById(tokenId: Address)
 
     @@async @@throws(mirror-node-error)
-    Page<Balance> getBalances(tokenId: ledger.Address)
+    Page<Balance> getBalances(tokenId: Address)
 
     @@async @@throws(mirror-node-error)
-    Page<Balance> getBalancesForAccount(tokenId: ledger.Address, accountId: ledger.Address)
+    Page<Balance> getBalancesForAccount(tokenId: Address, accountId: Address)
 }
 
-@static createRepository(mirrorNode: ledger.MirrorNode)
+@static createRepository(mirrorNode: MirrorNode)
 
 ```

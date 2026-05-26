@@ -7,13 +7,14 @@
 ```
 namespace mirrornode.contract
 
-requires ledger, keys
+requires {Address, MirrorNode} from ledger
+requires {PublicKey} from keys
 
 @@finalType
 Contract {
-    @@immutable contractId: ledger.Address
-    @@immutable @@nullable adminKey: keys.PublicKey
-    @@immutable @@nullable autoRenewAccount: ledger.Address
+    @@immutable contractId: Address
+    @@immutable @@nullable adminKey: PublicKey
+    @@immutable @@nullable autoRenewAccount: Address
     @@immutable autoRenewPeriod: int32
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
@@ -37,9 +38,9 @@ ContractRepository {
     Page<Contract> findAll()
 
     @@async @@throws(mirror-node-error)
-    @@nullable Contract findById(contractId: ledger.Address)
+    @@nullable Contract findById(contractId: Address)
 }
 
-@static createRepository(mirrorNode: ledger.MirrorNode)
+@static createRepository(mirrorNode: MirrorNode)
 
 ```

@@ -6,28 +6,30 @@
 
 ```
 namespace mirrornode.topic
-requires ledger, keys, mirrornode.common
+requires {Address, MirrorNode, TransactionId} from ledger
+requires {PublicKey} from keys
+requires {FixedFee} from mirrornode.common
 
 @@finalType
 Topic {
-    @@immutable topicId: ledger.Address
-    @@immutable @@nullable adminKey: keys.PublicKey
-    @@immutable @@nullable submitKey: keys.PublicKey
-    @@immutable @@nullable feeScheduleKey: keys.PublicKey
-    @@immutable @@nullable autoRenewAccount: ledger.Address
+    @@immutable topicId: Address
+    @@immutable @@nullable adminKey: PublicKey
+    @@immutable @@nullable submitKey: PublicKey
+    @@immutable @@nullable feeScheduleKey: PublicKey
+    @@immutable @@nullable autoRenewAccount: Address
     @@immutable autoRenewPeriod: int32
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
     @@immutable memo: string
-    @@immutable fixedFees: list<mirrornode.common.FixedFee>
-    @@immutable @@nullable feeExemptKeyList: list<keys.PublicKey>
+    @@immutable fixedFees: list<FixedFee>
+    @@immutable @@nullable feeExemptKeyList: list<PublicKey>
     @@immutable fromTimestamp: zonedDateTime
     @@immutable toTimestamp: zonedDateTime
 }
 
 @@finalType
 ChunkInfo {
-    @@immutable initialTransactionId: ledger.TransactionId
+    @@immutable initialTransactionId: TransactionId
     @@immutable nonce: int32
     @@immutable number: int32
     @@immutable total: int32
@@ -39,24 +41,24 @@ TopicMessage {
     @@immutable @@nullable chunkInfo: ChunkInfo
     @@immutable consensusTimestamp: zonedDateTime
     @@immutable message: string
-    @@immutable payerAccountId: ledger.Address
+    @@immutable payerAccountId: Address
     @@immutable runningHash: bytes
     @@immutable runningHashVersion: int32
     @@immutable sequenceNumber: int64
-    @@immutable topicId: ledger.Address
+    @@immutable topicId: Address
 }
 
 abstraction TopicRepository {
     @@async @@throws(mirror-node-error)
-    @@nullable Topic findById(topicId: ledger.Address)
+    @@nullable Topic findById(topicId: Address)
 
     @@async @@throws(mirror-node-error)
-    Page<TopicMessage> getMessages(topicId: ledger.Address)
+    Page<TopicMessage> getMessages(topicId: Address)
 
     @@async @@throws(mirror-node-error)
-    @@nullable TopicMessage getMessageBySequenceNumber(topicId: ledger.Address, sequenceNumber: int64)
+    @@nullable TopicMessage getMessageBySequenceNumber(topicId: Address, sequenceNumber: int64)
 }
 
-@static createRepository(mirrorNode: ledger.MirrorNode)
+@static createRepository(mirrorNode: MirrorNode)
 
 ```

@@ -6,34 +6,39 @@ Service definition for account handling.
 
 ```
 namespace enterprise.service.account
-requires common, ledger, nativeToken, consensusnode.client
+requires {Page} from common
+requires {Address} from ledger
+requires {NetworkSetting} from ledger.config
+requires {PublicKey} from keys
+requires {NativeToken} from nativeToken
+requires {Account, TransactionSigner} from consensusnode.client
 
 AccountInformation {
-    @@immutable accountId: ledger.Address
-    @@immutable balance: nativeToken.NativeToken<ANY, ANY>
-    @@immutable key: keys.PublicKey
+    @@immutable accountId: Address
+    @@immutable balance: NativeToken<ANY, ANY>
+    @@immutable key: PublicKey
 }
 
 AccountService {
 
-  @@throws(service-error) ledger.Address createNewAccount(key: keys.PublicKey)
+  @@throws(service-error) Address createNewAccount(key: PublicKey)
   
-  @@throws(service-error) ledger.Address createNewAccount(key: keys.PublicKey, initialBalance: nativeToken.NativeToken<ANY, ANY>)
+  @@throws(service-error) Address createNewAccount(key: PublicKey, initialBalance: NativeToken<ANY, ANY>)
 
-  @@throws(service-error) void updateAccountKey(accountId: ledger.Address, newKey: keys.PublicKey, oldKey: keys.PublicKey)
+  @@throws(service-error) void updateAccountKey(accountId: Address, newKey: PublicKey, oldKey: PublicKey)
   
-  @@throws(service-error) void deleteAccount(account: ledger.Address)
+  @@throws(service-error) void deleteAccount(account: Address)
 
-  @@throws(service-error) AccountInformation findById(account: ledger.Address)
+  @@throws(service-error) AccountInformation findById(account: Address)
   
-  @@throws(service-error) common.Page<AccountInformation> findAll()
+  @@throws(service-error) Page<AccountInformation> findAll()
 }
 
 //Factory method to create Service (not needed for real framework integration where injection is used)
 @@static
-AccountService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensusnode.client.Account)
+AccountService createService(networkSettings: NetworkSetting, operatorAccount: Account)
 
 @@static
-AccountService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensusnode.client.Account, transactionSigner: consensusnode.client.TransactionSigner)
+AccountService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
 
 ```

@@ -26,6 +26,7 @@ string result.
 
 ```
 namespace keys
+requires {ByteImportEncoding, KeyFormat} from keys.io
 
 // all key types
 enum KeyType {
@@ -46,21 +47,21 @@ abstraction Key {
     @@immutable type: KeyType //the type of the key
     
     // if container.format is not BYTES an illegal format error is thrown
-    @@throws(illegal-format) bytes toBytes(container: keys.io.KeyFormat)
+    @@throws(illegal-format) bytes toBytes(container: KeyFormat)
 
     // if container.format is not STRING an illegal format error is thrown
-    @@throws(illegal-format) string toString(container: keys.io.KeyFormat) 
+    @@throws(illegal-format) string toString(container: KeyFormat) 
 
     // returns the key in the RAW encoding
     bytes toRawBytes() 
     
     // Convert to bytes using specified container format
     // Throws illegal-format if container.format is not BYTES or doesn't support this key type
-    @@throws(illegal-format) bytes toBytes(container: keys.io.KeyFormat) 
+    @@throws(illegal-format) bytes toBytes(container: KeyFormat) 
     
     // Convert to string using specified container format
     // Throws illegal-format if container.format is not STRING or doesn't support this key type
-    @@throws(illegal-format) string toString(container: keys.io.KeyFormat) 
+    @@throws(illegal-format) string toString(container: KeyFormat) 
 }
 
 // a key pair
@@ -96,26 +97,27 @@ PrivateKey extends Key {
 @@static PublicKey generatePublicKey(algorithm: KeyAlgorithm)
 
 //Read a key based on a specific algorithm from a string
-@@throws(illegal-format) @@static PrivateKey createPrivateKey(algorithm: KeyAlgorithm, encoding: keys.io.ByteImportEncoding, value: string) // calls createPrivateKey(algorithm: KeyAlgorithm, rawBytes: bytes)
-@@throws(illegal-format) @@static PublicKey createPublicKey(algorithm: KeyAlgorithm, encoding: keys.io.ByteImportEncoding, value: string) // calls createPublicKey(algorithm: KeyAlgorithm, rawBytes: bytes)
+@@throws(illegal-format) @@static PrivateKey createPrivateKey(algorithm: KeyAlgorithm, encoding: ByteImportEncoding, value: string) // calls createPrivateKey(algorithm: KeyAlgorithm, rawBytes: bytes)
+@@throws(illegal-format) @@static PublicKey createPublicKey(algorithm: KeyAlgorithm, encoding: ByteImportEncoding, value: string) // calls createPublicKey(algorithm: KeyAlgorithm, rawBytes: bytes)
 
 //Read a key based on a specific algorithm from a byte array
 @@throws(illegal-format) @@static PrivateKey createPrivateKey(algorithm: KeyAlgorithm, rawBytes: bytes) // reads bytes as raw bytes for the given algorithm
 @@throws(illegal-format) @@static PublicKey createPublicKey(algorithm: KeyAlgorithm, rawBytes: bytes) // reads bytes as raw bytes for the given algorithm
 
 //Read a key based on a specific format (container & encoding) from a string
-@@throws(illegal-format) @@static PrivateKey createPrivateKey(container: keys.io.KeyFormat, value: string) // if container.format is not STRING an illegal format error is thrown
-@@throws(illegal-format) @@static PublicKey createPublicKey(container: keys.io.KeyFormat, value: string) // if container.format is not STRING an illegal format error is thrown
+@@throws(illegal-format) @@static PrivateKey createPrivateKey(container: KeyFormat, value: string) // if container.format is not STRING an illegal format error is thrown
+@@throws(illegal-format) @@static PublicKey createPublicKey(container: KeyFormat, value: string) // if container.format is not STRING an illegal format error is thrown
 
 //Read a key based on a specific format (container & encoding) from a byte array
-@@throws(illegal-format) @@static PrivateKey createPrivateKey(container: keys.io.KeyFormat, value: bytes) // if container.format is not BYTES an illegal format error is thrown
-@@throws(illegal-format) @@static PublicKey createPublicKey(container: keys.io.KeyFormat, value: bytes) // if container.format is not BYTES an illegal format error is thrown
+@@throws(illegal-format) @@static PrivateKey createPrivateKey(container: KeyFormat, value: bytes) // if container.format is not BYTES an illegal format error is thrown
+@@throws(illegal-format) @@static PublicKey createPublicKey(container: KeyFormat, value: bytes) // if container.format is not BYTES an illegal format error is thrown
 
 //Read a key based on our preferred format (container & encoding) from a string
 @@throws(illegal-format) @@static PrivateKey createPrivateKey(value: string) // reads string as PKCS#8 PEM
 @@throws(illegal-format) @@static PublicKey createPublicKey(value: string) // reads string as SPKI PEM
 
 namespace keys.io
+requires {KeyType} from keys
 
 enum RawFormat {
     STRING, // string representation of the bytes in the specified encoding
@@ -128,7 +130,7 @@ enum KeyEncoding {
     PEM // Privacy Enhanced Mail
     
     @@immutable RawFormat rawFormat // the raw format of the import / export
-    bytes decode(keyType : keys.KeyType, value : string)
+    bytes decode(keyType : KeyType, value : string)
 }
 
 // all supported container formats
@@ -136,7 +138,7 @@ enum KeyContainer {
     PKCS8, // PKCS#8 Private Key Specification
     SPKI // Subject Public Key Info
     
-    bool supportsType(keys.KeyType type) // returns true if the container format supports the given key type
+    bool supportsType(KeyType type) // returns true if the container format supports the given key type
 }
 
 // encoding information for import / export
@@ -157,8 +159,8 @@ enum KeyFormat {
     @@immutable KeyContainer container // the container format
     @@immutable KeyEncoding encoding // the encoding
     
-    bool supportsType(keys.KeyType type) // returns true if the internal container format supports the given key type
-    bytes decode(keyType : keys.KeyType, value : string) // decodes the given string value into raw bytes for the given key type
+    bool supportsType(KeyType type) // returns true if the internal container format supports the given key type
+    bytes decode(keyType : KeyType, value : string) // decodes the given string value into raw bytes for the given key type
   
 }
 

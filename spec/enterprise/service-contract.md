@@ -6,7 +6,9 @@ Service definition for smart contract interaction.
 
 ```
 namespace enterprise.service.contract
-requires ledger, consensusnode.client
+requires {Address} from ledger
+requires {NetworkSetting} from ledger.config
+requires {Account, TransactionSigner} from consensusnode.client
 
 ParamSupplier<$$SolidityType> {
     $$SolidityType getNativeContractValue()
@@ -28,11 +30,11 @@ ContractCallResult {
 
 SmartContractService {
 
-    @@throws(service-error) ledger.Address createContract(fileId:ledger.Address, constructorParams:Param<ANY, ANY>...)
+    @@throws(service-error) Address createContract(fileId:Address, constructorParams:Param<ANY, ANY>...)
     
-    @@throws(service-error) ledger.Address createContract(contents:bytes, constructorParams:Param<ANY, ANY>...)
+    @@throws(service-error) Address createContract(contents:bytes, constructorParams:Param<ANY, ANY>...)
     
-    @@throws(service-error) ContractCallResult callContractFunction(contractId:ledger.Address, functionName:string, params:Param<ANY, ANY>...)
+    @@throws(service-error) ContractCallResult callContractFunction(contractId:Address, functionName:string, params:Param<ANY, ANY>...)
 }
 
 // Factory methods for params to wrap native types in solidity types
@@ -42,7 +44,7 @@ Param<string> ofBytes23(value:string)
 Param<bytes> ofBytes(value:bytes)
 Param<bytes> ofBytes23(value:bytes)
 Param<string> ofAddress(value:string)
-Param<ledger.Address> ofAddress(value:ledger.Address)
+Param<Address> ofAddress(value:Address)
 Param<boolean> ofBool(value:boolean)
 Param<uint8> uint8(value:uint8)
 Param<int8> int8(value:int8)
@@ -51,9 +53,9 @@ Param<int256> int256(value:int256)
 
 //Factory method to create Service (not needed for real framework integration where injection is used)
 @@static
-SmartContractService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensusnode.client.Account)
+SmartContractService createService(networkSettings: NetworkSetting, operatorAccount: Account)
 
 @@static
-SmartContractService createService(networkSettings: ledger.config.NetworkSetting, operatorAccount: consensusnode.client.Account, transactionSigner: consensusnode.client.TransactionSigner)
+SmartContractService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
 
 ```

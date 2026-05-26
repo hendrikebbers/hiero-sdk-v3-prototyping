@@ -16,23 +16,25 @@ In the `TransactionBuilder`/`Transaction` model, the domain-specific type is the
 
 ```
 namespace consensusnode.transactions.spi
-requires consensusnode.transactions, grpc, consensusnode.proto
+requires {Receipt, Response, Transaction, Record} from consensusnode.transactions
+requires {MethodDescriptor} from grpc
+requires {TransactionBody, TransactionResponse, TransactionReceipt, TransactionRecord} from consensusnode.proto
 
-abstraction TransactionSupport<$$Receipt extends consensusnode.transactions.Receipt, $$Transaction extends consensusnode.transactions.Transaction<$$Receipt>> {
+abstraction TransactionSupport<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> {
 
     type getTransactionType() 
 
-    grpc.MethodDescriptor getMethodDescriptor()
+    MethodDescriptor getMethodDescriptor()
 
-    consensusnode.proto.TransactionBody updateBody(transaction:$$Transaction, protoBody:consensusnode.proto.TransactionBody) // updates the proto TransactionBody with the fields from the Transaction
+    TransactionBody updateBody(transaction:$$Transaction, protoBody:TransactionBody) // updates the proto TransactionBody with the fields from the Transaction
 
-    $$Transaction create(protoBody:consensusnode.proto.TransactionBody) // creates a Transaction from a proto TransactionBody
+    $$Transaction create(protoBody:TransactionBody) // creates a Transaction from a proto TransactionBody
 
-    consensusnode.transactions.Response<$$Receipt> create(protoResponse:consensusnode.proto.TransactionResponse) // creates a Response from a proto TransactionResponse
+    Response<$$Receipt> create(protoResponse:TransactionResponse) // creates a Response from a proto TransactionResponse
 
-    $$Receipt create(protoReceipt:consensusnode.proto.TransactionReceipt) // creates a Receipt from a proto TransactionReceipt
+    $$Receipt create(protoReceipt:TransactionReceipt) // creates a Receipt from a proto TransactionReceipt
 
-    consensusnode.transactionsRecord<$$Receipt> create(protoRecord:consensusnode.proto.TransactionRecord) // creates a Record from a proto TransactionRecord
+    Record<$$Receipt> create(protoRecord:TransactionRecord) // creates a Record from a proto TransactionRecord
 }
 
 // factory methods that need to be implemented

@@ -6,6 +6,7 @@
 
 ```
 namespace mirrornode.network
+requires {MirrorNode} from ledger
 
 @@finalType
 ExchangeRate {
@@ -63,6 +64,6 @@ NetworkRepository {
     @@nullable NetworkSupplies supplies()
 }
 
-@static createRepository(mirrorNode: ledger.MirrorNode)
+@static createRepository(mirrorNode: MirrorNode)
 
 ```

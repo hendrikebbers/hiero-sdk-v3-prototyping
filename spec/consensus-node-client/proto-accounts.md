@@ -7,7 +7,6 @@ This section defines the Hiero Proto API for the Account Service.
 TODO
 ```
 namespace consensusnode.proto.account
-requires proto, consensusnode.proto
 
 ```
 

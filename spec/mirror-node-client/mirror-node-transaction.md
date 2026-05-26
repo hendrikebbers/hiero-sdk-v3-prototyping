@@ -6,7 +6,8 @@
 
 ```
 namespace mirrornode.transaction
-requires ledger, keys, mirrornode.common.
+requires {Address, MirrorNode, TransactionId} from ledger
+requires {NftTransfer, StakingRewardTransfer, TokenTransfer, Transfer} from mirrornode.common
 
 // All known transaction types. Each carries a protocolName matching the REST API wire value.
 //TODO: That must be changed in future to make new services pluggable.
@@ -42,14 +43,14 @@ enum BalanceModification {
 
 @@finalType
 Transfer {
-    @@immutable account: ledger.Address
+    @@immutable account: Address
     @@immutable amount: int64
     @@immutable isApproval: bool
 }
 
 @@finalType
 TransactionInfo {
-    @@immutable transactionId: ledger.TransactionId
+    @@immutable transactionId: TransactionId
     @@immutable transactionHash: bytes
     @@immutable chargedTxFee: int64
     @@immutable consensusTimestamp: zonedDateTime
@@ -64,29 +65,29 @@ TransactionInfo {
     @@immutable scheduled: bool
     @@immutable validDurationSeconds: int64
     @@immutable validStartTimestamp: zonedDateTime
-    @@immutable transfers: list<mirrornode.common.Transfer>
-    @@immutable tokenTransfers: list<mirrornode.common.TokenTransfer>
-    @@immutable nftTransfers: list<mirrornode.common.NftTransfer>
-    @@immutable stakingRewardTransfers: list<mirrornode.common.StakingRewardTransfer>
+    @@immutable transfers: list<Transfer>
+    @@immutable tokenTransfers: list<TokenTransfer>
+    @@immutable nftTransfers: list<NftTransfer>
+    @@immutable stakingRewardTransfers: list<StakingRewardTransfer>
 }
 
 abstraction TransactionRepository {
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccount(accountId: ledger.Address)
+    Page<TransactionInfo> findByAccount(accountId: Address)
 
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccountAndType(accountId: ledger.Address, type: TransactionType)
+    Page<TransactionInfo> findByAccountAndType(accountId: Address, type: TransactionType)
 
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccountAndResult(accountId: ledger.Address, result: TransactionResult)
+    Page<TransactionInfo> findByAccountAndResult(accountId: Address, result: TransactionResult)
 
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccountAndModification(accountId: ledger.Address, modification: BalanceModification)
+    Page<TransactionInfo> findByAccountAndModification(accountId: Address, modification: BalanceModification)
 
     @@async @@throws(mirror-node-error)
-    @@nullable TransactionInfo findById(transactionId: ledger.TransactionId)
+    @@nullable TransactionInfo findById(transactionId: TransactionId)
 }
 
-@static createRepository(mirrorNode: ledger.MirrorNode)
+@static createRepository(mirrorNode: MirrorNode)
 
 ```

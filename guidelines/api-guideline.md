@@ -220,8 +220,11 @@ Type<ANY extends T>   // upper-bounded — any instantiation with a subtype of T
 Example:
 
 ```
+namespace contracts
+requires {ContractId, FileId} from common
+
 ContractCall {
-    common.ContractId createContract(fileId: common.FileId, constructorParams: ContractParam<ANY>...)
+    ContractId createContract(fileId: FileId, constructorParams: ContractParam<ANY>...)
 }
 ```
 
@@ -468,35 +471,42 @@ namespace transactions
     }
 ```
 
-If a namespace depends on other namespaces, use the `requires` keyword to declare the dependencies:
+If a namespace uses types from other namespaces, import them explicitly with the `requires` keyword. Each `requires`
+statement imports a set of named types from exactly one namespace, using the syntax `requires {Type1, Type2} from
+namespace`. Use one statement per source namespace and import only the types that are actually used. To import every
+type of a namespace at once, use `requires {*} from namespace`:
 
 ```
 namespace transactions
-requires common, keys
+requires {AccountId} from common
+requires {PublicKey, PrivateKey} from keys
 ...
  ```
 
-#### Cross-namespace type references
+#### Referencing imported types
 
-When a type is used that is defined in a different namespace, it must be qualified with the namespace name using dot
-notation: `namespace.Type`. Types within the same namespace can be referenced by their simple name.
+A type imported with `requires {Type} from namespace` is referenced by its simple name (without the namespace
+prefix), just like an import in most programming languages. Types defined in the same namespace are likewise
+referenced by their simple name.
 
 Example:
 
 ```
 namespace orders
-requires common
+requires {AccountId} from common
 
-// AccountId is defined in the `common` namespace, so it must be qualified
 OrderTransaction {
-    @@immutable account: common.AccountId
-    @@immutable status: OrderStatus // same namespace, no prefix needed
+    @@immutable account: AccountId   // imported from common, used by its simple name
+    @@immutable status: OrderStatus  // defined in the same namespace
 }
 ```
 
-This rule also applies to sub-namespaces. A type defined in `keys.io` must be referenced as `keys.io.TypeName` from
-outside that namespace, and a type in the parent `keys` namespace must be referenced as `keys.TypeName` from within
-`keys.io`.
+If two different namespaces export a type with the same simple name, the collision is resolved by qualifying the
+reference with the namespace name using dot notation: `namespace.Type`. The qualified form therefore remains valid
+and is used only to disambiguate.
+
+This rule also applies to sub-namespaces: use `requires {KeyFormat} from keys.io` to reference `KeyFormat` from within
+the `keys` namespace, and `requires {KeyType} from keys` to reference `KeyType` from within `keys.io`.
 
 ### Constants
 
@@ -645,12 +655,12 @@ unsubscribe from the topic, etc.). Each language implements this through its nat
 
 ```
 namespace topics
-requires common
+requires {TopicId} from common
 
 TopicSubscription {
     @@streaming
     @@throws(topic-deleted-error, authorization-error)
-    streamResult<TopicMessage> subscribe(topicId: common.TopicId, @@nullable retryPolicy: RetryPolicy)
+    streamResult<TopicMessage> subscribe(topicId: TopicId, @@nullable retryPolicy: RetryPolicy)
 }
 
 TopicMessage {

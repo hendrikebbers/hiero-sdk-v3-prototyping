@@ -6,9 +6,10 @@
 
 ```
 namespace ledger
+requires {NativeTokenUnit} from nativeToken
 
 // Represents a specific ledger instance
-Ledger<$$Unit extends nativeToken.NativeTokenUnit> {
+Ledger<$$Unit extends NativeTokenUnit> {
     @@immutable id: bytes // identifier of the ledger
     @@immutable @@nullable name: string // human readable name of the network
     @@immutable nativeTokenUnit: $$Unit
@@ -61,7 +62,7 @@ MirrorNode {
 @@throws(illegal-format) @@static Address fromString(address: string)
 
 // Factory methods for TransactionId
-@@static TransactionId generateTransactionId(accountId:common.AccountId)
+@@static TransactionId generateTransactionId(accountId:Address)
 @@throws(illegal-format) @@static TransactionId fromString(transactionId:string)
 
 // Factory methods for transaction loading

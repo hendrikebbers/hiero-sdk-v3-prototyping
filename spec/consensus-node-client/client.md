@@ -11,12 +11,15 @@ A client defines a concrete network connection to a specific network with a spec
 
 ```
 namespace consensusnode.client
-requires ledger, ledger.config, keys
+requires {Address, Ledger} from ledger
+requires {NetworkSetting} from ledger.config
+requires {PrivateKey} from keys
+requires {NativeTokenUnit} from nativeToken
 
 // Definition of an account that signs and pays for requests
 Account {
-    @@immutable accountId: ledger.Address // the account id of the operator
-    @@immutable privateKey: keys.PrivateKey // the private key of the operator
+    @@immutable accountId: Address // the account id of the operator
+    @@immutable privateKey: PrivateKey // the private key of the operator
 }
 
 // Helper to allow external signing of transactions
@@ -25,17 +28,17 @@ abstraction TransactionSigner {
 }
 
 // The client API that will be used by the SDK to interact with the network
-HieroClient<$$Unit extends nativeToken.NativeTokenUnit> {
+HieroClient<$$Unit extends NativeTokenUnit> {
     @@immutable operatorAccount: Account // the operator account
-    @@immutable ledger: ledger.Ledger<$$Unit> // the network to connect to
+    @@immutable ledger: Ledger<$$Unit> // the network to connect to
     @@immutable transactionSigner: TransactionSigner // by default the operator account is used, but this allows to use an external signer for transactions
     // TO_BE_DEFINED_IN_FUTURE_VERSIONS
 }
 
 // factory methods of `HieroClient` that should be added to the namespace in the best language dependent way
 
-@@static HieroClient<?> createClient(networkSettings: ledger.config.NetworkSetting, Account: OperatorAccount)
-@@static HieroClient<?> createClient(networkSettings: ledger.config.NetworkSetting, Account: OperatorAccount, transactionSigner: TransactionSigner)
+@@static HieroClient<?> createClient(networkSettings: NetworkSetting, Account: OperatorAccount)
+@@static HieroClient<?> createClient(networkSettings: NetworkSetting, Account: OperatorAccount, transactionSigner: TransactionSigner)
 ```
 
 ## Examples

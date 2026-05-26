@@ -32,3 +32,26 @@ Open follow-up tasks for the V3 SDK prototyping effort. See [`CLAUDE.md`](CLAUDE
   - Rust: `strum::IntoEnumIterator` or a manually maintained `const` array
   - Go: a maintained slice of the constant values
   - C++: a manually maintained array / generated table
+
+## Spec follow-ups
+
+These surfaced during the migration to the explicit `requires {Type} from namespace` import syntax. Because the new
+syntax imports only the types that are actually used, several previously declared but unused namespace dependencies
+were dropped. Confirm each is intended, or re-add a concrete import (`requires {Type} from ns`) once a type is
+actually referenced.
+
+- [ ] **`spec/consensus-node-client/transactions-accounts.md`** — the recently added `consensusnode.proto.account`
+  dependency was dropped because no type from it is referenced yet. Re-add `requires {Type} from
+  consensusnode.proto.account` when the body actually uses one.
+- [ ] **`spec/consensus-node-client/proto.md`** and **`spec/consensus-node-client/proto-accounts.md`** — these are
+  stubs; their `requires` declarations were removed entirely since they import nothing. Flesh out the proto
+  placeholders and add concrete imports when the protobuf types are defined (intended source: `hedera-protobufs`).
+- [ ] **`spec/base/ledger-config.md`** — the `nativeToken` dependency was dropped (unused). Note that
+  `NetworkSetting.ledger` is typed as the now-generic `Ledger`, which needs a type argument
+  (`Ledger<$$Unit>`) — decide whether `NetworkSetting` should itself be generic, which would re-introduce a
+  `nativeToken` import.
+- [ ] **`spec/mirror-node-client/mirror-node-{nft,token,transaction,common}.md`** — the unused `keys` import was
+  dropped; `mirror-node-nft.md` additionally dropped the unused `mirrornode.common` import.
+- [ ] **`spec/consensus-node-client/client.md`** — pre-existing issues unrelated to imports: the `createClient`
+  factories reference an undefined `OperatorAccount` type (likely meant to be `Account`) and use `HieroClient<?>`
+  instead of the meta-language wildcard `HieroClient<ANY>`.

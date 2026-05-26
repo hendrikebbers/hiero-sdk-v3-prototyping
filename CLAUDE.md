@@ -73,9 +73,11 @@ points to keep specs valid and consistent:
 
 - Each spec file follows the same skeleton: `# Title` → `## Description` → `## API Schema` (a fenced code block) →
   optional `## Examples` → `## Questions & Comments`.
-- The `## API Schema` block opens with `namespace <name>` and, if it uses other namespaces, `requires a, b, c`.
-- **Cross-namespace references must be qualified** (`ledger.Address`, `common.Page`); same-namespace types use the
-  simple name.
+- The `## API Schema` block opens with `namespace <name>`. Types from other namespaces are imported explicitly, one
+  statement per source namespace: `requires {Address, Ledger} from ledger`. Import only what is used; `requires {*}
+  from ns` imports everything.
+- **Imported (and same-namespace) types are referenced by their simple name** (`Address`, `Page`) — like an ES6/Java
+  import. The qualified form `namespace.Type` is only used to disambiguate a name collision between two namespaces.
 - **Naming:** Types `PascalCase`; fields & methods `lowerCamelCase`; enum values `UPPER_SNAKE_CASE`; namespaces
   `lowerCamelCase` (dots for sub-namespaces, no hyphens); constants `UPPER_SNAKE_CASE`; `@@throws` error ids
   `lowercase-kebab-case` (e.g. `not-found-error`).
@@ -96,8 +98,9 @@ points to keep specs valid and consistent:
 
 ## How to make changes
 
-- **Editing/adding a spec:** keep the section skeleton, declare the `namespace`/`requires`, qualify cross-namespace
-  types, and follow the naming + annotation rules above. Match the style of neighboring spec files.
+- **Editing/adding a spec:** keep the section skeleton, declare the `namespace` and import external types with
+  `requires {Type} from ns`, reference them by simple name, and follow the naming + annotation rules above. Match the
+  style of neighboring spec files.
 - **Open design questions** belong under each file's `## Questions & Comments` (often attributed to a GitHub handle).
   Don't silently resolve them; surface them.
 - **Language best-practice docs** (`api-best-practices-*.md`) describe how a meta-language concept maps to one

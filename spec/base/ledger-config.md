@@ -10,20 +10,20 @@ The config API provides functions to define and retrieve the configuration of a 
 
 ```
 namespace ledger.config
-requires ledger, nativeToken
+requires {Ledger, ConsensusNode, MirrorNode} from ledger
 
 // The full configuration to connect to a specific network
 NetworkSetting {
  
-    @@immutable ledger: ledger.Ledger // the definition of the ledger
+    @@immutable ledger: Ledger // the definition of the ledger
    
     // Returns an immutable set of consensus nodes
     // Modifications to the returned set do not affect the original
-    @@immutable set<ledger.ConsensusNode> getConsensusNodes()
+    @@immutable set<ConsensusNode> getConsensusNodes()
 
     // Returns an immutable set of mirror nodes
     // Modifications to the returned set do not affect the original
-    @@immutable set<ledger.MirrorNode> getMirrorNodes()
+    @@immutable set<MirrorNode> getMirrorNodes()
 
 }
 

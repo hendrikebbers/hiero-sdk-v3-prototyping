@@ -6,19 +6,19 @@
 
 ```
 namespace mirrornode.common
-requires ledger, keys
+requires {Address} from ledger
 
 @@finalType
 Transfer {
-    @@immutable account: ledger.Address
+    @@immutable account: Address
     @@immutable amount: int64
     @@immutable isApproval: bool
 }
 
 @@finalType
 TokenTransfer {
-    @@immutable tokenId: ledger.Address
-    @@immutable account: ledger.Address
+    @@immutable tokenId: Address
+    @@immutable account: Address
     @@immutable amount: int64
     @@immutable isApproval: bool
 }
@@ -26,9 +26,9 @@ TokenTransfer {
 // Grouping of sender, receiver, and token for an NFT transfer
 @@finalType
 NftTransferParties {
-    @@immutable senderAccountId: ledger.Address
-    @@immutable receiverAccountId: ledger.Address
-    @@immutable tokenId: ledger.Address
+    @@immutable senderAccountId: Address
+    @@immutable receiverAccountId: Address
+    @@immutable tokenId: Address
 }
 
 @@finalType
@@ -40,13 +40,13 @@ NftTransfer {
 
 @@finalType
 StakingRewardTransfer {
-    @@immutable account: ledger.Address
+    @@immutable account: Address
     @@immutable amount: int64
 }
 
 FixedFee {
     @@immutable amount: int64
-    @@immutable @@nullable collectorAccountId: ledger.Address
-    @@immutable @@nullable denominatingTokenId: ledger.Address //TODO: Does this makes sense since it is used in topic query service
+    @@immutable @@nullable collectorAccountId: Address
+    @@immutable @@nullable denominatingTokenId: Address //TODO: Does this makes sense since it is used in topic query service
 }
 ```

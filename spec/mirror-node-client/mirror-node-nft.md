@@ -6,47 +6,47 @@
 
 ```
 namespace mirrornode.nft
-requires ledger, keys, mirrornode.common
+requires {Address, MirrorNode} from ledger
 
 @@finalType
 NftMetadata {
-    @@immutable tokenId: ledger.Address
+    @@immutable tokenId: Address
     @@immutable name: string
     @@immutable symbol: string
-    @@immutable treasuryAccountId: ledger.Address
+    @@immutable treasuryAccountId: Address
 }
 
 @@finalType
 Nft {
-    @@immutable tokenId: ledger.Address
+    @@immutable tokenId: Address
     @@immutable serial: int64
-    @@immutable owner: ledger.Address
+    @@immutable owner: Address
     @@immutable metadata: bytes
 }
 
 abstraction NftRepository {
     @@async @@throws(mirror-node-error)
-    Page<Nft> findByOwner(ownerId: ledger.Address)
+    Page<Nft> findByOwner(ownerId: Address)
 
     @@async @@throws(mirror-node-error)
-    Page<Nft> findByType(tokenId: ledger.Address)
+    Page<Nft> findByType(tokenId: Address)
 
     @@async @@throws(mirror-node-error)
-    @@nullable Nft findByTypeAndSerial(tokenId: ledger.Address, serialNumber: int64)
+    @@nullable Nft findByTypeAndSerial(tokenId: Address, serialNumber: int64)
 
     @@async @@throws(mirror-node-error)
-    Page<Nft> findByOwnerAndType(ownerId: ledger.Address, tokenId: ledger.Address)
+    Page<Nft> findByOwnerAndType(ownerId: Address, tokenId: Address)
 
     @@async @@throws(mirror-node-error)
     Page<NftMetadata> findAllTypes()
 
     @@async @@throws(mirror-node-error)
-    Page<NftMetadata> findTypesByOwner(ownerId: ledger.Address)
+    Page<NftMetadata> findTypesByOwner(ownerId: Address)
 
     @@async @@throws(mirror-node-error)
-    @@nullable NftMetadata getNftMetadata(tokenId: ledger.Address)
+    @@nullable NftMetadata getNftMetadata(tokenId: Address)
 }
 
-@static createRepository(mirrorNode: ledger.MirrorNode)
+@static createRepository(mirrorNode: MirrorNode)
 
 ```
