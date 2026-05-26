@@ -7,7 +7,6 @@
 ```
 namespace common
 
-
 abstraction Page<$$T> {
     @@immutable data: list<$$T>
     @@immutable size: int32

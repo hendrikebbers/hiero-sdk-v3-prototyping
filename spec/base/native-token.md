@@ -53,3 +53,4 @@ HBarExchangeRate {
 
 - [@hendrikebbers](https://github.com/hendrikebbers): Do we want an abstraction for currency? HBAR is the only one for
   now and can be seen as Hedera specific.
+- [@hendrikebbers](https://github.com/hendrikebbers): Should `HBarExchangeRate.exchangeRateInUsdCents` really be `double` instead of `decimal`?
