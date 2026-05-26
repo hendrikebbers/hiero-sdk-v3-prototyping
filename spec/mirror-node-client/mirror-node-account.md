@@ -43,6 +43,6 @@ abstraction AccountRepository {
     Page<AccountInfo> findAll()
 }
 
-@static createRepository(mirrorNode: MirrorNode)
+@@static AccountRepository createRepository(mirrorNode: MirrorNode)
 
 ```

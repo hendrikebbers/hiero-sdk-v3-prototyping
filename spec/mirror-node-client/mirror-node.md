@@ -23,10 +23,10 @@ MirrorNodeClient {
     @@immutable accounts: AccountRepository
     @@immutable contracts: ContractRepository
     @@immutable network: NetworkRepository
-    @@immutable network: NftRepository
-    @@immutable network: TokenRepository
-    @@immutable network: TopicRepository
-    @@immutable network: TransactionRepository    
+    @@immutable nft: NftRepository
+    @@immutable token: TokenRepository
+    @@immutable topic: TopicRepository
+    @@immutable transaction: TransactionRepository    
 }
 
 @@static

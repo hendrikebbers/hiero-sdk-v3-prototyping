@@ -46,7 +46,7 @@ abstraction TransactionId {
 ConsensusNode {
     @@immutable ip: string // ip address of the node
     @@immutable port: uint16 // port of the node
-    @@immutable Address account // account of the node
+    @@immutable account: Address // account of the node
 }
 
 // Represents a mirror node on a network.
@@ -65,8 +65,6 @@ MirrorNode {
 @@static TransactionId generateTransactionId(accountId:Address)
 @@throws(illegal-format) @@static TransactionId fromString(transactionId:string)
 
-// Factory methods for transaction loading
-@@static Transaction<$$Receipt extends Receipt> fromBytes(transactionBytes: bytes)
 ```
 
 ## Questions & Comments

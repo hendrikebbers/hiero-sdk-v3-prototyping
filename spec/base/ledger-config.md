@@ -15,15 +15,11 @@ requires {Ledger, ConsensusNode, MirrorNode} from ledger
 // The full configuration to connect to a specific network
 NetworkSetting {
  
-    @@immutable ledger: Ledger // the definition of the ledger
+    @@immutable ledger: Ledger
    
-    // Returns an immutable set of consensus nodes
-    // Modifications to the returned set do not affect the original
-    @@immutable set<ConsensusNode> getConsensusNodes()
+    @@immutable  getConsensusNodes: set<ConsensusNode>
 
-    // Returns an immutable set of mirror nodes
-    // Modifications to the returned set do not affect the original
-    @@immutable set<MirrorNode> getMirrorNodes()
+    @@immutable  getMirrorNodes: set<MirrorNode>
 
 }
 

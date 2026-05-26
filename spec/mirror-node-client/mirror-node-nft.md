@@ -7,6 +7,7 @@
 ```
 namespace mirrornode.nft
 requires {Address, MirrorNode} from ledger
+requires {Page} from common
 
 @@finalType
 NftMetadata {
@@ -47,6 +48,6 @@ abstraction NftRepository {
     @@nullable NftMetadata getNftMetadata(tokenId: Address)
 }
 
-@static createRepository(mirrorNode: MirrorNode)
+@@static NftRepository createRepository(mirrorNode: MirrorNode)
 
 ```

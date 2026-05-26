@@ -46,12 +46,6 @@ abstraction Key {
     @@immutable algorithm: KeyAlgorithm //the algorithm of the key
     @@immutable type: KeyType //the type of the key
     
-    // if container.format is not BYTES an illegal format error is thrown
-    @@throws(illegal-format) bytes toBytes(container: KeyFormat)
-
-    // if container.format is not STRING an illegal format error is thrown
-    @@throws(illegal-format) string toString(container: KeyFormat) 
-
     // returns the key in the RAW encoding
     bytes toRawBytes() 
     
@@ -138,7 +132,7 @@ enum KeyContainer {
     PKCS8, // PKCS#8 Private Key Specification
     SPKI // Subject Public Key Info
     
-    bool supportsType(KeyType type) // returns true if the container format supports the given key type
+    bool supportsType(type: KeyType) // returns true if the container format supports the given key type
 }
 
 // encoding information for import / export
@@ -159,7 +153,7 @@ enum KeyFormat {
     @@immutable KeyContainer container // the container format
     @@immutable KeyEncoding encoding // the encoding
     
-    bool supportsType(KeyType type) // returns true if the internal container format supports the given key type
+    bool supportsType(type: KeyType) // returns true if the internal container format supports the given key type
     bytes decode(keyType : KeyType, value : string) // decodes the given string value into raw bytes for the given key type
   
 }

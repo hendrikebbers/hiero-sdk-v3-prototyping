@@ -8,6 +8,7 @@
 namespace mirrornode.transaction
 requires {Address, MirrorNode, TransactionId} from ledger
 requires {NftTransfer, StakingRewardTransfer, TokenTransfer, Transfer} from mirrornode.common
+requires {Page} from common
 
 // All known transaction types. Each carries a protocolName matching the REST API wire value.
 //TODO: That must be changed in future to make new services pluggable.
@@ -88,6 +89,6 @@ abstraction TransactionRepository {
     @@nullable TransactionInfo findById(transactionId: TransactionId)
 }
 
-@static createRepository(mirrorNode: MirrorNode)
+@@static TransactionRepository createRepository(mirrorNode: MirrorNode)
 
 ```

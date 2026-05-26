@@ -7,7 +7,8 @@
 ```
 namespace mirrornode.token
 requires {Address, MirrorNode} from ledger
-requires {RoyaltyFee} from mirrornode.common
+requires {FixedFee} from mirrornode.common
+requires {Page} from common
 
 @@finalType
 Balance {
@@ -98,6 +99,6 @@ abstraction TokenRepository {
     Page<Balance> getBalancesForAccount(tokenId: Address, accountId: Address)
 }
 
-@static createRepository(mirrorNode: MirrorNode)
+@@static TokenRepository createRepository(mirrorNode: MirrorNode)
 
 ```

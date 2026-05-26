@@ -21,11 +21,11 @@ Param<$$LangType, $$SolidityType> {
 }
 
 ContractCallResult {
-    @@immutable uint8 size;
+    @@immutable size: uint8;
     
     type getType(index:uint8)
     
-    any get(index:uint8)
+    ANY get(index:uint8)
 }
 
 SmartContractService {
@@ -38,18 +38,18 @@ SmartContractService {
 }
 
 // Factory methods for params to wrap native types in solidity types
-Param<string> ofString(value:string)
-Param<string> ofBytes(value:string)
-Param<string> ofBytes23(value:string)
-Param<bytes> ofBytes(value:bytes)
-Param<bytes> ofBytes23(value:bytes)
-Param<string> ofAddress(value:string)
-Param<Address> ofAddress(value:Address)
-Param<boolean> ofBool(value:boolean)
-Param<uint8> uint8(value:uint8)
-Param<int8> int8(value:int8)
-Param<uint256> uint256(value:uint256)
-Param<int256> int256(value:int256)
+@@static Param<string> ofString(value:string)
+@@static Param<string> ofBytes(value:string)
+@@static Param<string> ofBytes23(value:string)
+@@static Param<bytes> ofBytes(value:bytes)
+@@static Param<bytes> ofBytes23(value:bytes)
+@@static Param<string> ofAddress(value:string)
+@@static Param<Address> ofAddress(value:Address)
+@@static Param<bool> ofBool(value:bool)
+@@static Param<uint8> uint8(value:uint8)
+@@static Param<int8> int8(value:int8)
+@@static Param<uint256> uint256(value:uint256)
+@@static Param<int256> int256(value:int256)
 
 //Factory method to create Service (not needed for real framework integration where injection is used)
 @@static

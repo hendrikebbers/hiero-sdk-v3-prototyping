@@ -9,6 +9,7 @@ namespace mirrornode.topic
 requires {Address, MirrorNode, TransactionId} from ledger
 requires {PublicKey} from keys
 requires {FixedFee} from mirrornode.common
+requires {Page} from common
 
 @@finalType
 Topic {
@@ -59,6 +60,6 @@ abstraction TopicRepository {
     @@nullable TopicMessage getMessageBySequenceNumber(topicId: Address, sequenceNumber: int64)
 }
 
-@static createRepository(mirrorNode: MirrorNode)
+@@static TopicRepository createRepository(mirrorNode: MirrorNode)
 
 ```

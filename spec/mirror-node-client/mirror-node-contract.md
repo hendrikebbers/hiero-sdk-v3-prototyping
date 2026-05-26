@@ -9,6 +9,7 @@ namespace mirrornode.contract
 
 requires {Address, MirrorNode} from ledger
 requires {PublicKey} from keys
+requires {Page} from common
 
 @@finalType
 Contract {
@@ -41,6 +42,6 @@ ContractRepository {
     @@nullable Contract findById(contractId: Address)
 }
 
-@static createRepository(mirrorNode: MirrorNode)
+@@static ContractRepository createRepository(mirrorNode: MirrorNode)
 
 ```

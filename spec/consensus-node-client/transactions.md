@@ -10,7 +10,7 @@ This section defines the API for transactions.
 namespace consensusnode.transactions
 requires {Address, TransactionId} from ledger
 requires {NativeToken, ExchangeRate} from nativeToken
-requires {Account, HieroClient} from consensusnode.client
+requires {Account, HieroClient, TransactionSigner} from consensusnode.client
 
 // Defines the status of a transaction. Since we can have custom transaction types based on custom
 // services in the consensus node we cannot use an enum here anymore.
@@ -62,7 +62,7 @@ Response<$$Receipt extends Receipt> {
   @@async Record<$$Receipt> queryRecord()   // query for the record of the transaction
 }
 
-abstract Receipt {
+abstraction Receipt {
   @@immutable transactionId: TransactionId     // the id of the transaction
   @@immutable status: TransactionStatus        // the status of the transaction
   @@immutable exchangeRate: ExchangeRate     // the exchange rate at the time of the transaction
@@ -75,6 +75,8 @@ Record<$$Receipt extends Receipt> {
   @@immutable receipt: $$Receipt                     // the typed receipt of the transaction
 }
 
+// Factory methods for transaction loading
+@@static Transaction<$$Receipt extends Receipt> fromBytes(transactionBytes: bytes)
 
 ```
 

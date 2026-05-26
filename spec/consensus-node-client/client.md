@@ -37,8 +37,8 @@ HieroClient<$$Unit extends NativeTokenUnit> {
 
 // factory methods of `HieroClient` that should be added to the namespace in the best language dependent way
 
-@@static HieroClient<?> createClient(networkSettings: NetworkSetting, Account: OperatorAccount)
-@@static HieroClient<?> createClient(networkSettings: NetworkSetting, Account: OperatorAccount, transactionSigner: TransactionSigner)
+@@static HieroClient<ANY> createClient(networkSettings: NetworkSetting, operatorAccount: Account)
+@@static HieroClient<ANY> createClient(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
 ```
 
 ## Examples

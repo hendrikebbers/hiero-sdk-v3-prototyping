@@ -7,6 +7,7 @@
 ```
 namespace mirrornode.common
 requires {Address} from ledger
+requires {Page} from common
 
 @@finalType
 Transfer {
