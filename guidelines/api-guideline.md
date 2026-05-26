@@ -251,6 +251,10 @@ enum EnumName {
 }
 ```
 
+Every enum implicitly provides a static method that returns all of its values, equivalent to
+`@@static list<EnumName> values()`. This method is always available and must therefore not be declared explicitly.
+Each language maps it to its idiomatic mechanism (see the language best-practice guides).
+
 [Attributes](#attributes) can be added to enumerations. Attributes added to enumerations must be immutable (annotated
 with `@@immutable`).
 
