@@ -6,11 +6,11 @@ Service definition for account handling.
 
 ```
 namespace enterprise.service.account
-requires common, ledger, hbar, consensusnode.client
+requires common, ledger, nativeToken, consensusnode.client
 
 AccountInformation {
     @@immutable accountId: ledger.Address
-    @@immutable balance: hbar.Hbar
+    @@immutable balance: nativeToken.NativeToken<ANY, ANY>
     @@immutable key: keys.PublicKey
 }
 
@@ -18,7 +18,7 @@ AccountService {
 
   @@throws(service-error) ledger.Address createNewAccount(key: keys.PublicKey)
   
-  @@throws(service-error) ledger.Address createNewAccount(key: keys.PublicKey, initialBalance: hbar.Hbar)
+  @@throws(service-error) ledger.Address createNewAccount(key: keys.PublicKey, initialBalance: nativeToken.NativeToken<ANY, ANY>)
 
   @@throws(service-error) void updateAccountKey(accountId: ledger.Address, newKey: keys.PublicKey, oldKey: keys.PublicKey)
   

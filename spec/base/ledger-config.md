@@ -10,10 +10,7 @@ The config API provides functions to define and retrieve the configuration of a 
 
 ```
 namespace ledger.config
-requires ledger
-
-constant HEDERA_MAINNET_IDENTIFIER:string = "hedera-mainnet" // identifier for the Hedera mainnet
-constant HEDERA_TESTNET_IDENTIFIER:string = "hedera-testnet" // identifier for the Hedera testnet
+requires ledger, nativeToken
 
 // The full configuration to connect to a specific network
 NetworkSetting {

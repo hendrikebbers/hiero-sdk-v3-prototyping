@@ -4,7 +4,7 @@ This section defines the basic Hiero Proto API.
 
 ## Description
 
-Basic typoes
+Basic types
 
 ```
 namespace proto

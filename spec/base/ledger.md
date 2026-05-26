@@ -8,9 +8,10 @@
 namespace ledger
 
 // Represents a specific ledger instance
-Ledger {
+Ledger<$$Unit extends nativeToken.NativeTokenUnit> {
     @@immutable id: bytes // identifier of the ledger
     @@immutable @@nullable name: string // human readable name of the network
+    @@immutable nativeTokenUnit: $$Unit
 }
 
 // Represents the base of an address on a network.

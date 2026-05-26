@@ -7,12 +7,12 @@
 
 ```
 namespace consensusnode.transactions.accounts
-requires hbar, ledger, consensusnode.transactions, keys
+requires nativeToken, ledger, consensusnode.transactions, keys
 
 @@finalType
 AccountCreateTransaction extends consensusnode.transactions.Transaction<AccountCreateReceipt> {
     @@immutable key: keys.PublicKey
-    @@immutable @@default(0) initialBalance: hbar.Hbar
+    @@immutable @@default(0) initialBalance: nativeToken.NativeToken<ANY, ANY>
     @@immutable @@nullable accountMemo: string
     @@immutable @@default(false) receiverSignatureRequired: bool
     @@immutable @@nullable maxAutomaticTokenAssociations: int32

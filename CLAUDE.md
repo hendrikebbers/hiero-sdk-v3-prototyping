@@ -33,7 +33,7 @@ spec/                           # The actual V3 public-API specifications, writt
     ledger.md (ledger)          #   Ledger, Address, ConsensusNode, MirrorNode
     ledger-config.md (ledger.config)
     keys.md (keys, keys.io)     #   Keys + key import/export (PKCS#8, SPKI, DER, PEM)
-    native-token.md (hbar)      #   Hbar native token + exchange rate
+    native-token.md (nativeToken + hbar)  # NativeToken abstraction + Hedera-specific HBAR implementation
     grpc.md (grpc)
     proto.md (proto)
   consensus-node-client/        # Talking to the consensus node
@@ -53,7 +53,9 @@ spec/                           # The actual V3 public-API specifications, writt
 
 ### How the layers relate
 
-- **`base`** — primitives every layer depends on (`ledger`, `keys`, `hbar`, `common`, `proto`, `grpc`).
+- **`base`** — primitives every layer depends on (`ledger`, `keys`, `nativeToken`/`hbar`, `common`, `proto`, `grpc`).
+  The native token is modeled as an abstraction (`nativeToken`) with HBAR as one concrete implementation (`hbar`), so
+  the SDK is not bound to Hedera.
 - **`consensusnode.*`** — the low-level client: build/sign/execute transactions against the consensus node. The
   `spi` namespace exists because the consensus node is service-oriented and supports *custom* services and transaction
   types, so the SDK must be extensible (hence `TransactionStatus` is an abstraction with an `int32` code, not a closed

@@ -8,7 +8,7 @@ This section defines the API for transactions.
 
 ```
 namespace consensusnode.transactions
-requires ledger, keys, consensusnode.client
+requires ledger, keys, nativeToken, consensusnode.client
 
 // Defines the status of a transaction. Since we can have custom transaction types based on custom
 // services in the consensus node we cannot use an enum here anymore.
@@ -37,7 +37,7 @@ abstraction TransactionId {
 
 abstraction Transaction<$$Receipt extends Receipt> {
   
-  @@nullable @@immutable maxTransactionFee: common.Hbar
+  @@nullable @@immutable maxTransactionFee: nativeToken.NativeToken<ANY, ANY>
   @@nullable @@immutable validDuration: int64
   @@nullable @@immutable memo: string
   @@nullable @@immutable transactionId: TransactionId
@@ -73,8 +73,8 @@ Response<$$Receipt extends Receipt> {
 abstract Receipt {
   @@immutable transactionId: TransactionId     // the id of the transaction
   @@immutable status: TransactionStatus        // the status of the transaction
-  @@immutable exchangeRate: hbar.HBarExchangeRate     // the exchange rate at the time of the transaction
-  @@immutable nextExchangeRate: hbar.HBarExchangeRate // the next exchange rate
+  @@immutable exchangeRate: nativeToken.ExchangeRate     // the exchange rate at the time of the transaction
+  @@immutable nextExchangeRate: nativeToken.ExchangeRate // the next exchange rate
 }
 
 Record<$$Receipt extends Receipt> {
