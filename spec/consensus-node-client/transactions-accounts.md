@@ -7,7 +7,7 @@
 
 ```
 namespace consensusnode.transactions.accounts
-requires nativeToken, ledger, consensusnode.transactions, keys
+requires nativeToken, ledger, consensusnode.transactions, keys, consensusnode.proto.account
 
 @@finalType
 AccountCreateTransaction extends consensusnode.transactions.Transaction<AccountCreateReceipt> {
