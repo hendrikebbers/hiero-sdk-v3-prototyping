@@ -9,7 +9,7 @@ The namespaces group into the four `spec/` folders / layers:
 - **base** — `common`, `grpc`, `proto`, `nativeToken`, `keys`, `ledger`, `ledger.config`, `hedera`
 - **consensus-node-client** — `consensusnode.client`, `consensusnode.transactions[.accounts|.spi]`, `consensusnode.proto[.account]`
 - **mirror-node-client** — `mirrornode` and its per-domain sub-namespaces
-- **enterprise** — `enterprise.service[.account|.contract]`
+- **enterprise** — `enterprise.service[.account|.contract|.file|.token|.nft|.topic]`
 
 ## Layer overview
 
@@ -110,7 +110,6 @@ flowchart LR
     mn_account --> keys
     mn_account --> common
     mn_common --> ledger
-    mn_common --> common
     mn_contract --> ledger
     mn_contract --> keys
     mn_contract --> common
@@ -150,6 +149,7 @@ flowchart LR
     ent_nft --> ledger_config
     ent_nft --> keys
     ent_nft --> cn_client
+    ent_topic --> common
     ent_topic --> ledger
     ent_topic --> ledger_config
     ent_topic --> keys
@@ -171,7 +171,7 @@ flowchart LR
 ## Observations
 
 - **Foundation:** `nativeToken` and `ledger` are the most depended-upon base namespaces; `common` (the `Page<$$T>`
-  type) is required by every mirror-node and the enterprise account module.
+  type) is required by most mirror-node namespaces and the enterprise account and topic services.
 - **No cycles:** the dependency graph is acyclic. (The earlier `keys ↔ keys.io` cycle was removed by merging the
   `keys.io` sub-namespace into `keys`.)
 - **Clean layer separation:** `mirror-node-client` has no dependency on `consensus-node-client` (or vice versa), and

@@ -7,6 +7,7 @@
 
 ```
 namespace enterprise.service.topic
+requires {Page} from common
 requires {Address} from ledger
 requires {NetworkSetting} from ledger.config
 requires {PublicKey} from keys
