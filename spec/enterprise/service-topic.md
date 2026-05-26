@@ -1,14 +1,7 @@
 # Topic Service API
 
-Service definition for the Consensus Service: creating topics and submitting messages.
 
 ## Description
-
-Provides high-level write operations for consensus topics: creating public or private (submit-key protected) topics,
-updating their keys and memo, deleting them, and submitting messages. Topic ids are `ledger.Address` values.
-
-Reading topic messages (history and live subscription) is **not** part of this write-oriented service — it is
-covered by the mirror-node query API (`mirrornode.topic`, see `spec/mirror-node-client/mirror-node-topic.md`).
 
 ## API Schema
 
@@ -19,20 +12,48 @@ requires {NetworkSetting} from ledger.config
 requires {PublicKey} from keys
 requires {Account, TransactionSigner} from consensusnode.client
 
+@@finalType
+Topic {
+    @@immutable topicId: Address
+    @@immutable @@nullable adminKey: PublicKey
+    @@immutable @@nullable submitKey: PublicKey
+    @@immutable createdTimestamp: zonedDateTime
+    @@immutable memo: string
+}
+
+@@finalType
+TopicMessage {
+    @@immutable consensusTimestamp: zonedDateTime
+    @@immutable message: string
+    @@immutable payerAccountId: Address
+    @@immutable sequenceNumber: int64
+    @@immutable topicId: Address
+}
+
 TopicService {
 
     // Create a public topic (anyone may submit messages). An admin key allows later updates/deletion.
-    @@throws(service-error) Address createTopic()
+    @@throws(service-error) Topic createTopic()
 
-    @@throws(service-error) Address createTopic(memo: string)
+    @@throws(service-error) Topic createTopic(memo: string)
 
-    @@throws(service-error) Address createTopic(adminKey: PublicKey, memo: string)
+    @@throws(service-error) Topic createTopic(adminKey: PublicKey, memo: string)
+    
+    @@throws(service-error) @@nullable Topic findById(topicId: Address)
+    
+    @@throws(service-error) Page<Topic> getAll()
 
     // Delete a topic (requires admin-key authority)
     @@throws(service-error) void deleteTopic(topicId: Address)
 
     // Submit a message to a topic
-    @@throws(service-error) void submitMessage(topicId: Address, message: bytes)
+    @@throws(service-error) TopicMessage submitMessage(topicId: Address, message: bytes)
+    
+    @@throws(service-error) Page<TopicMessage> getMessages(topicId: Address)
+    
+    @@throws(service-error) TopicMessage getMessageBySequenceNumber(topicId: Address, sequenceNumber: int64)
+    
+    @@streaming TopicMessage subscribe(topicId: Address)
 }
 
 // Factory methods to create the service (not needed for real framework integration where injection is used)
