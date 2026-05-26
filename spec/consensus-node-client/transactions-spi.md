@@ -39,9 +39,9 @@ abstraction TransactionSupport<$$Receipt extends Receipt, $$Transaction extends 
 
 // factory methods that need to be implemented
 
-@@throws(not-found-error) @@static TransactionSupport getTransactionSupport(transactionType:type) // returns the TransactionSupport for the given transaction type
+@@throws(not-found-error) @@static TransactionSupport<ANY, ANY> getTransactionSupport(transactionType:type) // returns the TransactionSupport for the given transaction type
 
-@@static set<TransactionSupport> getAllTransactionSupports() // returns all TransactionSupport instances
+@@static set<TransactionSupport<ANY, ANY>> getAllTransactionSupports() // returns all TransactionSupport instances
 ```
 
 ## Questions & Comments

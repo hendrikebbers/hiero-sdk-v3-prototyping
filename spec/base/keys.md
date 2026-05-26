@@ -123,7 +123,7 @@ enum KeyEncoding {
     DER, // Distinguished Encoding Rules
     PEM // Privacy Enhanced Mail
     
-    @@immutable RawFormat rawFormat // the raw format of the import / export
+    @@immutable rawFormat: RawFormat // the raw format of the import / export
     bytes decode(keyType : KeyType, value : string)
 }
 
@@ -150,8 +150,8 @@ enum KeyFormat {
     PKCS8_WITH_PEM,
     SPKI_WITH_PEM
     
-    @@immutable KeyContainer container // the container format
-    @@immutable KeyEncoding encoding // the encoding
+    @@immutable container: KeyContainer // the container format
+    @@immutable encoding: KeyEncoding // the encoding
     
     bool supportsType(type: KeyType) // returns true if the internal container format supports the given key type
     bytes decode(keyType : KeyType, value : string) // decodes the given string value into raw bytes for the given key type

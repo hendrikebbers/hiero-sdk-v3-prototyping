@@ -15,7 +15,7 @@ requires {Ledger, ConsensusNode, MirrorNode} from ledger
 // The full configuration to connect to a specific network
 NetworkSetting {
  
-    @@immutable ledger: Ledger
+    @@immutable ledger: Ledger<ANY>
    
     @@immutable  getConsensusNodes: set<ConsensusNode>
 

@@ -23,7 +23,7 @@ Address {
     @@immutable checksum: string // checksum of the address
     
     // Validates the checksum of the address
-    bool validateChecksum(ledger: Ledger)
+    bool validateChecksum(ledger: Ledger<ANY>)
     
     // returns address in format "shard.realm.num"
     string toString()

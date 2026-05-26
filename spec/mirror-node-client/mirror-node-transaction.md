@@ -43,13 +43,6 @@ enum BalanceModification {
 }
 
 @@finalType
-Transfer {
-    @@immutable account: Address
-    @@immutable amount: int64
-    @@immutable isApproval: bool
-}
-
-@@finalType
 TransactionInfo {
     @@immutable transactionId: TransactionId
     @@immutable transactionHash: bytes
