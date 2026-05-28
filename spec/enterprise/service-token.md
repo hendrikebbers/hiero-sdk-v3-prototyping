@@ -12,10 +12,12 @@ A token that should support later minting/burning must be created with a supply 
 
 ```
 namespace enterprise.service.token
+requires {Page} from common
 requires {Address} from ledger
 requires {NetworkSetting} from ledger.config
 requires {PublicKey} from keys
 requires {Account, TransactionSigner} from consensusnode.client
+requires {Token, TokenInfo, Balance} from mirrornode.token
 
 FungibleTokenService {
 
@@ -43,6 +45,18 @@ FungibleTokenService {
 
     // Transfer units from a specific account to a recipient
     @@throws(service-error) void transferToken(tokenId: Address, fromAccountId: Address, toAccountId: Address, amount: int64)
+
+    // Return the full token information for the given token id
+    @@throws(service-error) @@nullable TokenInfo findById(tokenId: Address)
+
+    // Return all tokens that the given account is associated with
+    @@throws(service-error) Page<Token> findByAccount(accountId: Address)
+
+    // Return the balance of the given token held by every account that holds it
+    @@throws(service-error) Page<Balance> getBalances(tokenId: Address)
+
+    // Return the balance of the given token for a specific account
+    @@throws(service-error) Page<Balance> getBalancesForAccount(tokenId: Address, accountId: Address)
 }
 
 // Factory methods to create the service (not needed for real framework integration where injection is used)
