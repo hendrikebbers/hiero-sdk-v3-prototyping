@@ -8,8 +8,7 @@ Service definition for smart contract interaction.
 namespace enterprise.service.contract
 requires {Page} from common
 requires {Address} from ledger
-requires {NetworkSetting} from ledger.config
-requires {Account, TransactionSigner} from consensusnode.client
+requires {Session} from enterprise.service
 
 ParamSupplier<$$SolidityType> {
     $$SolidityType getNativeContractValue()
@@ -67,9 +66,6 @@ SmartContractService {
 
 //Factory method to create Service (not needed for real framework integration where injection is used)
 @@static
-SmartContractService createService(networkSettings: NetworkSetting, operatorAccount: Account)
-
-@@static
-SmartContractService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
+SmartContractService createService(session: Session)
 
 ```

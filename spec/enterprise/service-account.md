@@ -8,10 +8,9 @@ Service definition for account handling.
 namespace enterprise.service.account
 requires {Page} from common
 requires {Address} from ledger
-requires {NetworkSetting} from ledger.config
 requires {PublicKey} from keys
 requires {NativeToken} from nativeToken
-requires {Account, TransactionSigner} from consensusnode.client
+requires {Session} from enterprise.service
 
 AccountInformation {
     @@immutable accountId: Address
@@ -36,9 +35,6 @@ AccountService {
 
 //Factory method to create Service (not needed for real framework integration where injection is used)
 @@static
-AccountService createService(networkSettings: NetworkSetting, operatorAccount: Account)
-
-@@static
-AccountService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
+AccountService createService(session: Session)
 
 ```

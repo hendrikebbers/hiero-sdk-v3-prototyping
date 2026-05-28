@@ -67,7 +67,7 @@ flowchart LR
     end
 
     subgraph enterprise["enterprise"]
-        ent_service["enterprise.service ∅"]
+        ent_service["enterprise.service"]
         ent_account["…service.account"]
         ent_contract["…service.contract"]
         ent_file["…service.file"]
@@ -130,37 +130,32 @@ flowchart LR
     mn_transaction --> common
 
     %% enterprise
+    ent_service --> ledger_config
+    ent_service --> cn_client
     ent_account --> common
     ent_account --> ledger
-    ent_account --> ledger_config
     ent_account --> keys
     ent_account --> nativeToken
-    ent_account --> cn_client
+    ent_account --> ent_service
     ent_contract --> common
     ent_contract --> ledger
-    ent_contract --> ledger_config
-    ent_contract --> cn_client
-    ent_contract --> mn_contract
+    ent_contract --> ent_service
     ent_file --> ledger
-    ent_file --> ledger_config
-    ent_file --> cn_client
+    ent_file --> ent_service
     ent_token --> common
     ent_token --> ledger
-    ent_token --> ledger_config
     ent_token --> keys
-    ent_token --> cn_client
     ent_token --> mn_token
+    ent_token --> ent_service
     ent_nft --> common
     ent_nft --> ledger
-    ent_nft --> ledger_config
     ent_nft --> keys
-    ent_nft --> cn_client
     ent_nft --> mn_nft
+    ent_nft --> ent_service
     ent_topic --> common
     ent_topic --> ledger
-    ent_topic --> ledger_config
     ent_topic --> keys
-    ent_topic --> cn_client
+    ent_topic --> ent_service
 
     classDef base fill:#e8f0fe,stroke:#4285f4,color:#000;
     classDef consensus fill:#e6f4ea,stroke:#34a853,color:#000;
@@ -185,10 +180,16 @@ flowchart LR
 - **Clean layer separation:** `mirror-node-client` has no dependency on `consensus-node-client` (or vice versa), and
   `base` depends on nothing outside `base`. `enterprise` is the only layer that combines `consensus-node-client`,
   `mirror-node-client`, and `base` — the mirror-node edge was introduced so that the service layer can reuse the
-  domain types (`Nft`, `NftMetadata`, `Token`, `TokenInfo`, `Balance`, `Contract`) for its query methods instead of
-  redeclaring them.
-- **Empty stubs (no edges):** `proto`, `consensusnode.proto.account`, and `enterprise.service` define no types yet.
-  `consensusnode.proto` is used only by `consensusnode.transactions.spi`.
+  domain types (`Nft`, `NftMetadata`, `Token`, `TokenInfo`, `Balance`) for its query methods instead of redeclaring
+  them. (`enterprise.service.contract` keeps a thin local `Contract` type and therefore does not depend on
+  `mirrornode.contract`.)
+- **Session as the shared root of `enterprise`:** `enterprise.service` defines the `Session` (network settings,
+  operator account, transaction signer, read-your-writes high-water-mark) that every concrete service
+  (`…service.account`, `…service.contract`, `…service.file`, `…service.token`, `…service.nft`, `…service.topic`)
+  depends on. As a result the concrete services no longer import `ledger.config` or `consensusnode.client`
+  directly — both reach them through `enterprise.service`.
+- **Empty stubs (no edges):** `proto` and `consensusnode.proto.account` define no types yet. `consensusnode.proto`
+  is used only by `consensusnode.transactions.spi`.
 - **Hedera is base-resident:** `hedera` (HBAR + Hedera network settings) currently lives in the base layer and depends
   on `ledger.config` and `nativeToken` — see the open question in
   [`native-token.md`](base/native-token.md) about whether Hedera-specific namespaces should move out of `base`.

@@ -12,8 +12,7 @@ chunking that is required for payloads larger than a single transaction. Entity 
 ```
 namespace enterprise.service.file
 requires {Address} from ledger
-requires {NetworkSetting} from ledger.config
-requires {Account, TransactionSigner} from consensusnode.client
+requires {Session} from enterprise.service
 
 FileService {
 
@@ -44,12 +43,9 @@ FileService {
     @@throws(service-error) zonedDateTime getExpirationTime(fileId: Address)
 }
 
-// Factory methods to create the service (not needed for real framework integration where injection is used)
+// Factory method to create the service (not needed for real framework integration where injection is used)
 @@static
-FileService createService(networkSettings: NetworkSetting, operatorAccount: Account)
-
-@@static
-FileService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
+FileService createService(session: Session)
 ```
 
 ## Questions & Comments

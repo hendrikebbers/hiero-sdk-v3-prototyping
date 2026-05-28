@@ -14,10 +14,9 @@ A token that should support later minting/burning must be created with a supply 
 namespace enterprise.service.token
 requires {Page} from common
 requires {Address} from ledger
-requires {NetworkSetting} from ledger.config
 requires {PublicKey} from keys
-requires {Account, TransactionSigner} from consensusnode.client
 requires {Token, TokenInfo, Balance} from mirrornode.token
+requires {Session} from enterprise.service
 
 FungibleTokenService {
 
@@ -59,12 +58,9 @@ FungibleTokenService {
     @@throws(service-error) Page<Balance> getBalancesForAccount(tokenId: Address, accountId: Address)
 }
 
-// Factory methods to create the service (not needed for real framework integration where injection is used)
+// Factory method to create the service (not needed for real framework integration where injection is used)
 @@static
-FungibleTokenService createService(networkSettings: NetworkSetting, operatorAccount: Account)
-
-@@static
-FungibleTokenService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
+FungibleTokenService createService(session: Session)
 ```
 
 ## Questions & Comments

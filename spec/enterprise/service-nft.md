@@ -14,10 +14,9 @@ identified by their type plus an `int64` serial number. Metadata is an opaque `b
 namespace enterprise.service.nft
 requires {Page} from common
 requires {Address} from ledger
-requires {NetworkSetting} from ledger.config
 requires {PublicKey} from keys
-requires {Account, TransactionSigner} from consensusnode.client
 requires {Nft, NftMetadata} from mirrornode.nft
+requires {Session} from enterprise.service
 
 NftService {
 
@@ -89,12 +88,9 @@ NftService {
     @@throws(service-error) @@nullable Nft findByOwnerAndTypeAndSerial(ownerId: Address, tokenId: Address, serialNumber: int64)
 }
 
-// Factory methods to create the service (not needed for real framework integration where injection is used)
+// Factory method to create the service (not needed for real framework integration where injection is used)
 @@static
-NftService createService(networkSettings: NetworkSetting, operatorAccount: Account)
-
-@@static
-NftService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
+NftService createService(session: Session)
 ```
 
 ## Questions & Comments

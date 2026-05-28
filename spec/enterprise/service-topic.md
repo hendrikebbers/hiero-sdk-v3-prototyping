@@ -9,9 +9,8 @@
 namespace enterprise.service.topic
 requires {Page} from common
 requires {Address} from ledger
-requires {NetworkSetting} from ledger.config
 requires {PublicKey} from keys
-requires {Account, TransactionSigner} from consensusnode.client
+requires {Session} from enterprise.service
 
 @@finalType
 Topic {
@@ -57,12 +56,9 @@ TopicService {
     @@streaming TopicMessage subscribe(topicId: Address)
 }
 
-// Factory methods to create the service (not needed for real framework integration where injection is used)
+// Factory method to create the service (not needed for real framework integration where injection is used)
 @@static
-TopicService createService(networkSettings: NetworkSetting, operatorAccount: Account)
-
-@@static
-TopicService createService(networkSettings: NetworkSetting, operatorAccount: Account, transactionSigner: TransactionSigner)
+TopicService createService(session: Session)
 ```
 
 ## Questions & Comments
