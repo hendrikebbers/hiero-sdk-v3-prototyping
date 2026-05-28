@@ -21,13 +21,14 @@ flowchart LR
     base["base<br/>(common, ledger, keys, nativeToken, …)"]
 
     enterprise --> consensus
+    enterprise --> mirror
     enterprise --> base
     consensus --> base
     mirror --> base
 ```
 
 `mirror-node-client` and `consensus-node-client` are independent of each other; `enterprise` builds on top of
-`consensus-node-client` and `base`. Everything ultimately rests on `base`.
+`consensus-node-client`, `mirror-node-client`, and `base`. Everything ultimately rests on `base`.
 
 ## Namespace dependency graph
 
@@ -135,20 +136,26 @@ flowchart LR
     ent_account --> keys
     ent_account --> nativeToken
     ent_account --> cn_client
+    ent_contract --> common
     ent_contract --> ledger
     ent_contract --> ledger_config
     ent_contract --> cn_client
+    ent_contract --> mn_contract
     ent_file --> ledger
     ent_file --> ledger_config
     ent_file --> cn_client
+    ent_token --> common
     ent_token --> ledger
     ent_token --> ledger_config
     ent_token --> keys
     ent_token --> cn_client
+    ent_token --> mn_token
+    ent_nft --> common
     ent_nft --> ledger
     ent_nft --> ledger_config
     ent_nft --> keys
     ent_nft --> cn_client
+    ent_nft --> mn_nft
     ent_topic --> common
     ent_topic --> ledger
     ent_topic --> ledger_config
@@ -171,12 +178,15 @@ flowchart LR
 ## Observations
 
 - **Foundation:** `nativeToken` and `ledger` are the most depended-upon base namespaces; `common` (the `Page<$$T>`
-  type) is required by most mirror-node namespaces and the enterprise account and topic services.
+  type) is required by most mirror-node namespaces and by every enterprise service that exposes paginated queries
+  (`account`, `topic`, `nft`, `token`, `contract`).
 - **No cycles:** the dependency graph is acyclic. (The earlier `keys ↔ keys.io` cycle was removed by merging the
   `keys.io` sub-namespace into `keys`.)
 - **Clean layer separation:** `mirror-node-client` has no dependency on `consensus-node-client` (or vice versa), and
-  `base` depends on nothing outside `base`. `enterprise` is the only layer that combines `consensus-node-client` with
-  `base`.
+  `base` depends on nothing outside `base`. `enterprise` is the only layer that combines `consensus-node-client`,
+  `mirror-node-client`, and `base` — the mirror-node edge was introduced so that the service layer can reuse the
+  domain types (`Nft`, `NftMetadata`, `Token`, `TokenInfo`, `Balance`, `Contract`) for its query methods instead of
+  redeclaring them.
 - **Empty stubs (no edges):** `proto`, `consensusnode.proto.account`, and `enterprise.service` define no types yet.
   `consensusnode.proto` is used only by `consensusnode.transactions.spi`.
 - **Hedera is base-resident:** `hedera` (HBAR + Hedera network settings) currently lives in the base layer and depends
