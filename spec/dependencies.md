@@ -9,7 +9,7 @@ The namespaces group into the four `spec/` folders / layers:
 - **base** — `common`, `grpc`, `proto`, `nativeToken`, `keys`, `ledger`, `ledger.config`, `hedera`
 - **consensus-node-client** — `consensusnode.client`, `consensusnode.transactions[.accounts|.spi]`, `consensusnode.proto[.account]`
 - **mirror-node-client** — `mirrornode` and its per-domain sub-namespaces
-- **enterprise** — `enterprise.service[.account|.contract|.file|.token|.nft|.topic]`
+- **enterprise** — `enterprise.service[.common|.account|.contract|.file|.token|.nft|.topic]`
 
 ## Layer overview
 
@@ -68,6 +68,7 @@ flowchart LR
 
     subgraph enterprise["enterprise"]
         ent_service["enterprise.service"]
+        ent_common["…service.common"]
         ent_account["…service.account"]
         ent_contract["…service.contract"]
         ent_file["…service.file"]
@@ -165,7 +166,7 @@ flowchart LR
     class common,grpc,proto,nativeToken,keys,ledger,ledger_config,hedera base;
     class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_proto,cn_proto_account consensus;
     class mn,mn_account,mn_common,mn_contract,mn_network,mn_nft,mn_token,mn_topic,mn_transaction mirror;
-    class ent_service,ent_account,ent_contract,ent_file,ent_token,ent_nft,ent_topic enterprise;
+    class ent_service,ent_common,ent_account,ent_contract,ent_file,ent_token,ent_nft,ent_topic enterprise;
 ```
 
 `∅` marks namespaces that are still empty stubs (no types defined yet).
@@ -190,6 +191,9 @@ flowchart LR
   directly — both reach them through `enterprise.service`.
 - **Empty stubs (no edges):** `proto` and `consensusnode.proto.account` define no types yet. `consensusnode.proto`
   is used only by `consensusnode.transactions.spi`.
+- **Isolated nodes (no edges):** `enterprise.service.common` defines a `Subscription` type but is not yet imported
+  by any other namespace; the streaming methods on `…service.topic` would be the natural caller once they return
+  the subscription handle.
 - **Hedera is base-resident:** `hedera` (HBAR + Hedera network settings) currently lives in the base layer and depends
   on `ledger.config` and `nativeToken` — see the open question in
   [`native-token.md`](base/native-token.md) about whether Hedera-specific namespaces should move out of `base`.
