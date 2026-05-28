@@ -12,7 +12,6 @@ constant SOLO_IDENTIFIER:string = "solo" // identifier for a solo based network 
 
 SoloNetworkSetting extends NetworkSetting {
 }
-
 ```
 
 ## Questions & Comments
