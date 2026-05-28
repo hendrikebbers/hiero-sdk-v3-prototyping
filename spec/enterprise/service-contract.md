@@ -6,6 +6,7 @@ Service definition for smart contract interaction.
 
 ```
 namespace enterprise.service.contract
+requires {Page} from common
 requires {Address} from ledger
 requires {NetworkSetting} from ledger.config
 requires {Account, TransactionSigner} from consensusnode.client
@@ -28,13 +29,26 @@ ContractCallResult {
     ANY get(index:uint8)
 }
 
+@@finalType
+Contract {
+    @@immutable contractId: Address
+}
+
 SmartContractService {
 
-    @@throws(service-error) Address createContract(fileId:Address, constructorParams:Param<ANY, ANY>...)
+    @@throws(service-error) Contract createContract(fileId:Address, constructorParams:Param<ANY, ANY>...)
     
-    @@throws(service-error) Address createContract(contents:bytes, constructorParams:Param<ANY, ANY>...)
+    @@throws(service-error) Contract createContract(contents:bytes, constructorParams:Param<ANY, ANY>...)
     
+    @@throws(service-error) ContractCallResult callContractFunction(contract:Contract, functionName:string, params:Param<ANY, ANY>...)
+
     @@throws(service-error) ContractCallResult callContractFunction(contractId:Address, functionName:string, params:Param<ANY, ANY>...)
+
+    // Return the contract information for the given contract id
+    @@throws(service-error) @@nullable Contract findById(contractId: Address)
+
+    // Return all known contracts
+    @@throws(service-error) Page<Contract> findAll()
 }
 
 // Factory methods for params to wrap native types in solidity types
