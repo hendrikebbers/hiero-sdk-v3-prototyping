@@ -47,6 +47,7 @@ The following basic data types should be used in the API documentation.
 | `time`                     | A time value without date or timezone (nanosecond precision)          |
 | `dateTime`                 | A date and time value without timezone (nanosecond precision)         |
 | `zonedDateTime`            | A date and time value with timezone (nanosecond precision)            |
+| `duration`                 | A time based duration (nanosecond precision)                          |
 | `streamResult<TYPE>`       | A stream item that is either a success value of TYPE or an error      |
 | `function<R m(p: T, ...)>` | A function type (often called lambda/callable)                        |
 | `ANY`                      | A top type — accepts any value. Use sparingly (see best practices)    |

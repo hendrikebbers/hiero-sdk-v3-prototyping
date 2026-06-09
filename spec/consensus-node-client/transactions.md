@@ -10,7 +10,7 @@ This section defines the API for transactions.
 namespace consensusnode.transactions
 requires {Address, TransactionId} from ledger
 requires {NativeToken, ExchangeRate} from nativeToken
-requires {Account, HieroClient, TransactionSigner} from consensusnode.client
+requires {Account, HieroClient, NodeSignature, TransactionSigner} from consensusnode.client
 
 // Defines the status of a transaction. Since we can have custom transaction types based on custom
 // services in the consensus node we cannot use an enum here anymore.
@@ -27,30 +27,59 @@ enum BasicTransactionStatus extends TransactionStatus {
     GRPC_WEB_PROXY_NOT_SUPPORTED
 }
 
+// A serialized TransactionBody for one target consensus node — the exact bytes an external signer
+// must sign. Bytes differ per node because each body carries the target node's nodeAccountID.
+type NodeBody {
+    @@immutable node: Address
+    @@immutable bytes: bytes
+}
+
 abstraction Transaction<$$Receipt extends Receipt> {
   
-  @@nullable @@immutable maxTransactionFee: NativeToken<ANY, ANY>
-  @@nullable @@immutable validDuration: int64
-  @@nullable @@immutable memo: string
-  @@nullable @@immutable transactionId: TransactionId
-  @@nullable @@immutable maxAttempts: int32
-  @@nullable @@immutable maxBackoff: int64
-  @@nullable @@immutable minBackoff: int64
-  @@nullable @@immutable attemptTimeout: int64
-  @@immutable nodeAccountIds: list<Address>
-
-  // returns a new instance (TODO: this API must be made better)
-  Transaction<$$Receipt> sign(account: Account)
-
-// returns a new instance (TODO: this API must be made better)
-  Transaction<$$Receipt> sign(client: HieroClient)
+  @@nullable maxTransactionFee: NativeToken<ANY, ANY>
+  @@nullable validDuration: duration
+  @@nullable memo: string
   
-  // returns a new instance (TODO: this API must be made better)
-  Transaction<$$Receipt> sign(signer: TransactionSigner)
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> pack(payer: Account, nodes: list<Address>)  
     
-  @@async Response<$$Receipt> execute(client: HieroClient)
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> signWithOperator(client: HieroClient)
+  
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payer: Account, nodes: list<Address>)
+  
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payerId: Address, signer: TransactionSigner, nodes: list<Address>)
+  
+  @@async Response<$$Receipt> signWithOperatorAndExecute(client: HieroClient)
+  
+}
 
-  @@async Response<$$Receipt> signAndExecute(client: HieroClient)
+abstraction PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> {
+  
+  @@immutable transactionId: TransactionId
+  @@immutable nodeSignatures: list<NodeSignature> 
+  @@nullable maxAttempts: int32
+  @@nullable maxBackoff: int64
+  @@nullable minBackoff: int64
+  @@nullable attemptTimeout: int64
+
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(account: Account)
+  
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(signer: TransactionSigner)
+
+  // Returns the serialized TransactionBody bytes for every target node. Used by out-of-process
+  // signing flows (raw HSMs, async signing pipelines, multi-party coordination, audit archival)
+  // that cannot be wrapped behind a synchronous TransactionSigner. The returned list has one
+  // NodeBody per node in `nodes`.
+  list<NodeBody> signableBodies()
+
+  // Attaches externally-produced NodeSignatures to this PackedTransaction and returns a new
+  // PackedTransaction containing them. The provided list must contain one signature per node
+  // returned by signableBodies() for the same PublicKey; otherwise execute() will fail with
+  // INVALID_SIGNATURE on the chosen node.
+  // @@throws(unknown-node-error)        if a signature references a node not in `nodes`
+  // @@throws(incomplete-signatures-error) if signatures for any target node are missing
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> addSignatures(signatures: list<NodeSignature>)
+
+  @@async Response<$$Receipt> execute(client: HieroClient)
   
   bytes toBytes()
 }
@@ -76,7 +105,7 @@ Record<$$Receipt extends Receipt> {
 }
 
 // Factory methods for transaction loading
-@@static Transaction<$$Receipt extends Receipt> fromBytes(transactionBytes: bytes)
+@@static PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> fromBytes(bytes: bytes)
 
 ```
 

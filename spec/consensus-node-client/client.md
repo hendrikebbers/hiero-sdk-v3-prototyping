@@ -22,9 +22,16 @@ Account {
     @@immutable privateKey: PrivateKey // the private key of the operator
 }
 
+type NodeSignature {
+      @@immutable node: Address
+      @@immutable publicKey: PublicKey
+      @@immutable signature: bytes
+}
+
 // Helper to allow external signing of transactions
 abstraction TransactionSigner {
-  bytes signTransaction(transactionBytes: bytes) // returns the signature as a byte array
+
+  NodeSignature signTransaction(transactionBytes: bytes, node: Address)
 }
 
 // The client API that will be used by the SDK to interact with the network
