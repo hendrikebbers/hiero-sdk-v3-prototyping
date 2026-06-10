@@ -274,6 +274,50 @@ Also still open in **Questions & Comments**:
 
 ## 5. Client / networking / operator setup (`HieroClient`)
 
+### 5.1 Operator identity is coupled to an in-memory `PrivateKey`
+
+`HieroClient` requires an `operatorAccount: Account`
+([`spec/consensus-node-client/client.md`](spec/consensus-node-client/client.md)), and
+`Account` itself carries an `@@immutable privateKey: PrivateKey`. Constructing a client
+therefore implies the operator's private key sits in process memory.
+
+That assumption breaks for the majority of enterprise deployments:
+
+- HSM / KMS-backed operator keys (AWS CloudHSM, Azure Key Vault, GCP KMS, PKCS#11)
+- Hardware-wallet-backed operators (Ledger, Trezor, Blade-Signer)
+- Browser-/Wallet-bridge integrations (HashConnect, WalletConnect, Hedera Wallet Snap)
+- FIPS-certified custody where keys must never leave the device
+
+v2 already has this escape hatch: `Client.setOperatorWith(AccountId, PublicKey,
+UnaryFunction<byte[], byte[]>)` decouples operator identity (`AccountId` + `PublicKey`)
+from the signing mechanism (a function pointer that an HSM / wallet wrapper provides).
+
+V3 has the right building block in place — `TransactionSigner` on `HieroClient` — but
+still forces `Account.privateKey` to exist alongside it. The fix is to **separate operator
+identity from operator signing** at the type level:
+
+| What | Current | Needed |
+| --- | --- | --- |
+| Operator identity | `Account { accountId, privateKey }` | `accountId: Address` + `publicKey: PublicKey` (no `PrivateKey`) |
+| Operator signing | `transactionSigner: TransactionSigner` (already present) | unchanged; becomes the *only* signing path |
+| In-memory shortcut | implicit via `Account.privateKey` | dedicated factory that wraps a `PrivateKey` in a `TransactionSigner` for CLI / dev use |
+
+This change has ripple effects:
+
+- `Account` either loses `privateKey` (becoming an identity-only record) or is split into
+  `Account` (identity) and `LocalAccount`/`SigningAccount` (identity + key).
+- `Transaction.sign(payer: Account, nodes)` and `PaidQuery`'s sponsored-query story (see
+  [ADR-0002](docs/adr/0002-defer-paid-query-payer-customization.md)) both feed from the
+  same operator/payer-identity model and must be reworked consistently.
+- The 95-% CLI / script case should still be one line — a static helper to wrap a
+  `PrivateKey` into the new identity + signer pair keeps the simple path simple.
+
+This is an architectural correction, not a feature addition. It should land before V3
+attempts to address sponsored-query payers (which depend on the same identity / signer
+decoupling) or shipping consumers for whom external signing is non-negotiable.
+
+### 5.2 Other client features missing from v2
+
 The V3 spec has a lean `HieroClient<$$Unit>`. v2 offers significantly more
 setup flexibility:
 
