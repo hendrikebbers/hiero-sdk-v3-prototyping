@@ -34,6 +34,26 @@ abstraction TransactionSigner {
   NodeSignature signTransaction(transactionBytes: bytes, node: Address)
 }
 
+// Common base for anything that is handed off to the consensus node network and
+// produces a typed result — both queries (consensusnode.queries.Query) and
+// packed transactions (consensusnode.transactions.PackedTransaction) extend this.
+// Carries the shared retry-tuning knobs (max attempts, backoff window, per-attempt
+// timeout) and the single submit() entry point. The SDK applies these settings
+// when selecting a consensus node, retrying transient gRPC failures, and bounding
+// the total wait.
+abstraction Submittable<$$Result> {
+
+    @@nullable maxAttempts: int32
+    @@nullable maxBackoff: int64
+    @@nullable minBackoff: int64
+    @@nullable attemptTimeout: int64
+
+    // Hand off to the network and return the typed result. Node selection,
+    // retry, and any operation-specific protocol details (e.g. cost discovery
+    // and payment for PaidQuery) are handled by the SDK transparently.
+    @@async $$Result submit(client: HieroClient)
+}
+
 // The client API that will be used by the SDK to interact with the network
 HieroClient<$$Unit extends NativeTokenUnit> {
     @@immutable operatorAccount: Account // the operator account

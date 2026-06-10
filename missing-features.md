@@ -78,21 +78,46 @@ Only the **account service** is currently specified
 
 ### 1.10 Queries (consensus-node-side)
 
-The spec only models receipts and records. **Missing:**
-`AccountBalanceQuery`, `AccountInfoQuery`, `AccountRecordsQuery`,
-`ContractCallQuery` (local EVM call), `ContractInfoQuery`,
-`ContractBytecodeQuery`, `FileContentsQuery`, `FileInfoQuery`,
-`TokenInfoQuery`, `TokenNftInfoQuery`, `TopicInfoQuery`, `ScheduleInfoQuery`,
-`NetworkVersionInfoQuery`, `NodeAddressBookQuery`,
-`MirrorNodeContractCallQuery` (HIP-1027), `MirrorNodeContractEstimateGasQuery`.
+Base abstractions are now specified in
+[`spec/consensus-node-client/queries.md`](spec/consensus-node-client/queries.md):
 
-### 1.11 Features on `Transaction<...>` itself
+- `Query<$$Result>` — free queries; extends `Submittable<QueryResponse<$$Result>>`.
+- `PaidQuery<$$Result>` — paid queries; adds auto-discovered cost, `maxQueryPayment`
+  ceiling, optional `payer` override (sponsored queries), and `getCost()`.
+- `QueryResponse<$$T>` / `PaidQueryResponse<$$T>` — envelope types carrying `value`,
+  `answeredBy`, and (paid only) `cost`.
+
+First concrete service file landed in
+[`queries-accounts.md`](spec/consensus-node-client/queries-accounts.md):
+
+| Query | V3 spec |
+| --- | --- |
+| `AccountBalanceQuery` (free) | :white_check_mark: |
+| `AccountInfoQuery` (paid) | :white_check_mark: |
+
+Still missing per service:
+
+- `AccountRecordsQuery`
+- `ContractCallQuery` (local EVM call), `ContractInfoQuery`, `ContractBytecodeQuery`
+- `FileContentsQuery`, `FileInfoQuery`
+- `TokenInfoQuery`, `TokenNftInfoQuery`
+- `TopicInfoQuery`
+- `ScheduleInfoQuery`
+- `NetworkVersionInfoQuery`, `NodeAddressBookQuery`
+- `MirrorNodeContractCallQuery` (HIP-1027), `MirrorNodeContractEstimateGasQuery`
+  — these belong on `mirrornode.contract.ContractRepository`, not in `consensusnode.queries`
+
+### 1.11 Features on `Transaction<...>` / `PackedTransaction<...>`
+
+The lifecycle (build → pack → sign → submit) is now explicit. `Submittable` (defined in
+`consensusnode.client`) is the shared retry/submit base for both `PackedTransaction` and
+`Query`.
 
 | Feature in v2 | V3 spec |
 | --- | --- |
-| Explicit `freeze()` / `freezeWith(Client)` step | :x: |
-| `addSignature(PublicKey, byte[])` (offline signing) | :x: |
-| `getSignatures()` / `signableNodeBodyBytesList()` (HSM workflow) | :x: |
+| Explicit freeze step | :white_check_mark: via `Transaction.pack(payer, nodes)` |
+| `addSignature(PublicKey, byte[])` (offline signing) | :white_check_mark: via `PackedTransaction.sign(list<NodeSignature>)` |
+| `getSignatures()` / `signableNodeBodyBytesList()` (HSM workflow) | :white_check_mark: via `nodeSignatures` field + `signableBodies()` |
 | `getTransactionHash()` / `getTransactionHashPerNode()` | :x: |
 | `setRegenerateTransactionId(boolean)` | :x: |
 | `batchify(Client, Key)` | :x: |
@@ -284,7 +309,9 @@ setup flexibility:
    transactions (`Create` / `Associate` / `Mint` / `Burn` / transfer),
    topic transactions (`Create` / `Update` / `Delete` / `SubmitMessage`),
    file transactions, contract transactions + `EthereumTransaction`, the
-   common queries (info / balance / records).
+   remaining common queries (`AccountRecordsQuery`, contract / file / token /
+   topic / schedule info queries). Query base abstractions + first two
+   concrete queries already landed; pattern is established for the rest.
 2. **Modern HIPs:** Schedule (HIP-755), airdrops (HIP-904), DAB node ops
    (HIP-869 / HIP-1046), custom fees on topics (HIP-991), batch (HIP-551),
    mutable NFT metadata (HIP-657).
@@ -295,8 +322,7 @@ setup flexibility:
    (results / state / logs / call), airdrops, allowances, rewards, generic
    range-filter model.
 5. **Client / infrastructure:** fee estimation, logger abstraction,
-   address-book refresh, shard / realm persistence, offline-signing workflow
-   (`addSignature` / `signableBodyBytes`).
+   address-book refresh, shard / realm persistence.
 
 ---
 

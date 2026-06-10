@@ -12,3 +12,4 @@ deleted — superseded ADRs link forward to the decision that replaces them.
 | # | Title | Status |
 |---|---|---|
 | [0001](0001-transaction-and-packed-transaction-split.md) | Split the transaction API into `Transaction` and `PackedTransaction` | Accepted |
+| [0002](0002-defer-paid-query-payer-customization.md) | Defer payer customization for paid queries | Accepted |

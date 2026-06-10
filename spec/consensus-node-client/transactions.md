@@ -31,7 +31,7 @@ single mutable type or a `freeze()` step on `Transaction`.
 ### Lifecycle
 
 ```
-  build              pack              sign               execute
+  build              pack              sign               submit
    ──▶ Transaction ──▶ PackedTransaction ──▶ PackedTransaction ──▶ Response
                           (0 signatures)        (n signatures)
 ```
@@ -42,8 +42,13 @@ single mutable type or a `freeze()` step on `Transaction`.
   point between the editable and the immutable world.
 - **sign** — append one or more `NodeSignature` entries. Several mechanisms are supported
   (see *Signing mechanisms* below).
-- **execute** — submit to one of the target consensus nodes and obtain a `Response`. The chosen
-  node is an SDK-internal detail; the caller does not steer it.
+- **submit** — hand the packed transaction to one of the target consensus nodes and obtain a
+  `Response`. The chosen node is an SDK-internal detail; the caller does not steer it. Actual
+  ledger execution happens on the network asynchronously — the `Response` is the submission
+  acknowledgment, not the execution result. Use `Response.queryReceipt()` /
+  `Response.queryRecord()` to read the outcome once consensus is reached. `submit(client)` is
+  inherited from `Submittable` (defined in `consensusnode.client`), which also carries the
+  shared retry-tuning fields.
 
 A `PackedTransaction` may be serialized via `toBytes()` at any point, shipped to another process or
 machine, re-loaded via the static `fromBytes(...)` factory, and have further signatures appended on
@@ -55,13 +60,13 @@ survive the round-trip.
 The signing surface is intentionally tiered, with one convenience method per common case and one
 data-oriented escape hatch for out-of-process workflows:
 
-| Caller has… | Method |
+| Caller has | Method |
 |---|---|
-| A configured `HieroClient` with operator | `Transaction.signWithOperator(client)` (or `signWithOperatorAndExecute(client)` for fire-and-forget) |
+| A configured `HieroClient` with operator | `Transaction.signWithOperator(client)` (or `signWithOperatorAndSubmit(client)` for fire-and-forget) |
 | A single `Account` that pays *and* signs | `Transaction.sign(payer, nodes)` |
 | A separate payer address and a `TransactionSigner` (HSM, hardware wallet, paymaster) | `Transaction.sign(payerId, signer, nodes)` |
 | An already-packed transaction that needs another in-process signature (multi-sig) | `PackedTransaction.sign(account)` or `PackedTransaction.sign(signer)` |
-| Out-of-process signing (async pipeline, multi-party, audit archival, raw HSM bytes) | `PackedTransaction.signableBodies()` + `PackedTransaction.addSignatures(...)` |
+| Out-of-process signing (async pipeline, multi-party, audit archival, raw HSM bytes) | `PackedTransaction.signableBodies()` + `PackedTransaction.sign(signatures)` |
 
 Signature ordering is irrelevant — `NodeSignature` entries form a set; the consensus node accepts
 them in any order. The packed transaction can also be built first via `Transaction.pack(...)`
@@ -98,7 +103,7 @@ deterministic ids for testing must be modelled by a different mechanism if neede
 namespace consensusnode.transactions
 requires {Address, TransactionId} from ledger
 requires {NativeToken, ExchangeRate} from nativeToken
-requires {Account, HieroClient, NodeSignature, TransactionSigner} from consensusnode.client
+requires {Account, HieroClient, NodeSignature, Submittable, TransactionSigner} from consensusnode.client
 
 // Defines the status of a transaction. Since we can have custom transaction types based on custom
 // services in the consensus node we cannot use an enum here anymore.
@@ -136,18 +141,18 @@ abstraction Transaction<$$Receipt extends Receipt> {
   
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payerId: Address, signer: TransactionSigner, nodes: list<Address>)
   
-  @@async Response<$$Receipt> signWithOperatorAndExecute(client: HieroClient)
+  @@async Response<$$Receipt> signWithOperatorAndSubmit(client: HieroClient)
   
 }
 
-abstraction PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> {
-  
+// PackedTransaction is a Submittable that yields a Response when handed to the network.
+// Retry-tuning fields (maxAttempts, maxBackoff, minBackoff, attemptTimeout) and the
+// submit(client) method are inherited from Submittable.
+abstraction PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>>
+        extends Submittable<Response<$$Receipt>> {
+
   @@immutable transactionId: TransactionId
   @@immutable nodeSignatures: list<NodeSignature> 
-  @@nullable maxAttempts: int32
-  @@nullable maxBackoff: int64
-  @@nullable minBackoff: int64
-  @@nullable attemptTimeout: int64
 
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(account: Account)
   
@@ -161,14 +166,12 @@ abstraction PackedTransaction<$$Receipt extends Receipt, $$Transaction extends T
 
   // Attaches externally-produced NodeSignatures to this PackedTransaction and returns a new
   // PackedTransaction containing them. The provided list must contain one signature per node
-  // returned by signableBodies() for the same PublicKey; otherwise execute() will fail with
+  // returned by signableBodies() for the same PublicKey; otherwise submit() will fail with
   // INVALID_SIGNATURE on the chosen node.
   // @@throws(unknown-node-error)        if a signature references a node not in `nodes`
   // @@throws(incomplete-signatures-error) if signatures for any target node are missing
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(signatures: list<NodeSignature>)
 
-  @@async Response<$$Receipt> execute(client: HieroClient)
-  
   bytes toBytes()
 }
 
@@ -214,7 +217,7 @@ HieroClient client = ...;
 Response<AccountCreateReceipt> response = new AccountCreateTransaction()
     .initialBalance(...)
     .key(...)
-    .signWithOperatorAndExecute(client);
+    .signWithOperatorAndSubmit(client);
 
 AccountCreateReceipt receipt = response.queryReceipt();
 Address newAccountId = receipt.accountId;
@@ -235,7 +238,7 @@ PackedTransaction<...> packed = new AccountCreateTransaction()
     .key(...)
     .sign(payer, nodes);
 
-Response<AccountCreateReceipt> response = packed.execute(client);
+Response<AccountCreateReceipt> response = packed.submit(client);
 ```
 
 ### 3. Paymaster pattern (sponsor pays, user signs the operation)
@@ -254,7 +257,7 @@ PackedTransaction<...> packed = new TransferTransaction()
     .sign(sponsor.accountId, userSigner, nodes)     // user's operation signature
     .sign(sponsor);                                  // sponsor's payer signature
 
-packed.execute(client);
+packed.submit(client);
 ```
 
 ### 4. Multi-sig collected across processes
@@ -279,7 +282,7 @@ bytes signedA = received.sign(custodianA).toBytes();
 
 // Coordinator finalises:
 PackedTransaction<...> finalTx = PackedTransaction.fromBytes(signedC);
-finalTx.execute(client);
+finalTx.submit(client);
 ```
 
 ### 5. Out-of-process / async signing (server-side pipeline)
@@ -302,8 +305,8 @@ return Accepted(jobId);
 // Later, on a worker, after signatures arrive via webhook:
 PackedTransaction<...> resumed = PackedTransaction.fromBytes(db.load(jobId));
 list<NodeSignature> signatures = ...;      // produced by remote signer
-PackedTransaction<...> signed = resumed.addSignatures(signatures);
-signed.execute(client);
+PackedTransaction<...> signed = resumed.sign(signatures);
+signed.submit(client);
 ```
 
 ## Questions & Comments
