@@ -154,11 +154,27 @@ Today only a generic `Address` exists. In v2 these are first-class types:
 
 | API in v2 | V3 spec |
 | --- | --- |
-| `KeyList` (n-of-n) | :x: |
-| `ThresholdKey` (m-of-n) | :x: |
+| `Key` (sum type over `PublicKey` / `ContractID` / `DelegatableContractID` / `KeyList` / `ThresholdKey`) — **prerequisite** for everything below it in this section | :x: |
+| `KeyList` (n-of-n composition of `Key`s; entries are themselves `Key`s, so the structure is recursive) | :x: |
+| `ThresholdKey` (m-of-n composition of `Key`s; an `int32 threshold` plus an inner `KeyList`) | :x: |
 | `Mnemonic` (BIP-39 12 / 24-word + legacy 22-word, `toStandardEd25519PrivateKey`, `toStandardECDSAsecp256k1PrivateKey`) | :x: |
 | `PublicKey.toEvmAddress()` / `toAccountId()` | :x: |
 | HSM signer function (`UnaryFunction<byte[], byte[]>`) | :warning: abstracted via `TransactionSigner` |
+
+`Key` is the sum-type at the top of the HAPI key model: every `key` field on the protocol —
+account keys, every kind of token key (`adminKey` / `treasuryKey` / `wipeKey` / `freezeKey` /
+`kycKey` / `pauseKey` / `supplyKey` / `feeScheduleKey` / `metadataKey`), topic
+`adminKey` / `submitKey`, schedule `adminKey`, contract `adminKey`, and the per-entry type in
+a file's `KeyList` — is a `Key`, not a raw public key. Because `KeyList` and `ThresholdKey`
+are themselves variants of `Key`, the structure is recursive: a single account can be guarded
+by, e.g., "Alice's Ed25519 OR (2-of-3 of {Bob, Carol, ContractID(dao)})".
+
+Until `Key` exists, every spec that needs a key field is forced into one of two compromises:
+typing it as `PublicKey` (loses contract-id keys, m-of-n custody, nested structures) or as
+`list<PublicKey>` (loses thresholds and the ability to nest). Both are placeholders. The
+current uses are in [`transactions-accounts.md`](spec/consensus-node-client/transactions-accounts.md)
+(account `key`) and [`transactions-files.md`](spec/consensus-node-client/transactions-files.md)
+(file `keys`).
 
 ### 2.3 Custom fees (HTS + HIP-991)
 
