@@ -254,3 +254,15 @@ For free queries, `QueryResponse` carries `value` and `answeredBy`; `cost` is on
 - **Streaming queries** (e.g. topic message subscriptions) do not fit this request/response
   shape and are modelled separately under `mirrornode.topic` / `enterprise.service.topic` as
   `@@streaming` operations.
+- **Should `QueryResponse` carry the ledger origin?** HAPI's `*GetInfoResponse` messages all
+  embed a `ledger_id` so a detached payload (mirrored, archived, replayed) can still be
+  attributed to its source ledger. The V3 spec drops it from every Info payload (`AccountInfo`
+  in [`queries-accounts.md`](queries-accounts.md), `FileInfo` in
+  [`queries-files.md`](queries-files.md), and any future Info type) because the caller
+  already knows the ledger via their `HieroClient` and duplicating it on every typed payload
+  is bloat. The open question is whether to surface it *once* on the envelope — analogous to
+  the existing `answeredBy: Address` — as
+  `@@immutable ledgerId: bytes` (or `LedgerId`, once typed) on `QueryResponse<$$T>`. That
+  keeps the metadata available for serialize-then-archive workflows without polluting every
+  payload, and applies uniformly to free and paid queries. Defer until a concrete archival /
+  audit use-case shows up.

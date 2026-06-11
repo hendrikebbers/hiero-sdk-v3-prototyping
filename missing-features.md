@@ -101,7 +101,8 @@ Still missing per service:
 
 - `AccountRecordsQuery`
 - `ContractCallQuery` (local EVM call), `ContractInfoQuery`, `ContractBytecodeQuery`
-- `FileContentsQuery`, `FileInfoQuery`
+- ~~`FileContentsQuery`, `FileInfoQuery`~~ :white_check_mark:
+  ([`queries-files.md`](spec/consensus-node-client/queries-files.md))
 - `TokenInfoQuery`, `TokenNftInfoQuery`
 - `TopicInfoQuery`
 - `ScheduleInfoQuery`
