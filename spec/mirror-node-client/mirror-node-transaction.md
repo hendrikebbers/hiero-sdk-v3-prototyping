@@ -57,7 +57,7 @@ TransactionInfo {
     @@immutable @@nullable parentConsensusTimestamp: zonedDateTime
     @@immutable result: TransactionResult
     @@immutable scheduled: bool
-    @@immutable validDurationSeconds: int64
+    @@immutable validDuration: seconds
     @@immutable validStartTimestamp: zonedDateTime
     @@immutable transfers: list<Transfer>
     @@immutable tokenTransfers: list<TokenTransfer>

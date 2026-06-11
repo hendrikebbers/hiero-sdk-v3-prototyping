@@ -40,7 +40,7 @@ consensus-node body size limit.
 
 | Transaction         | Signers required                                                                          |
 |---------------------|-------------------------------------------------------------------------------------------|
-| `FileCreate`        | the *payer* only — the new key list does not need to sign creation                        |
+| `FileCreate`        | the *payer* **and** every key in the new `keys` list (anti-spoofing: cannot bind another party's key as a file modifier without their consent) |
 | `FileAppend`        | the *payer* **and** every key in the file's current key list                              |
 | `FileUpdate`        | the *payer* **and** every key in the *current* key list; if `keys` changes, every key in the *new* list must sign as well |
 | `FileDelete`        | the *payer* **and** every key in the file's current key list                              |

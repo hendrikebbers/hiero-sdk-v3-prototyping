@@ -23,7 +23,7 @@ AccountInfo {
     @@immutable @@nullable accountMemo: string
     @@immutable @@nullable createdTimestamp: zonedDateTime
     @@immutable @@nullable expiryTimestamp: zonedDateTime
-    @@immutable @@nullable autoRenewPeriod: int64
+    @@immutable @@nullable autoRenewPeriod: seconds
     @@immutable @@nullable maxAutomaticTokenAssociations: int32
     @@immutable @@nullable receiverSignatureRequired: bool
     @@immutable @@default(false) declineReward: bool

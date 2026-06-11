@@ -54,7 +54,7 @@ type AccountInfo {
     @@immutable @@nullable key: PublicKey
     @@immutable @@nullable accountMemo: string
     @@immutable expirationTime: zonedDateTime
-    @@immutable @@nullable autoRenewPeriod: int64
+    @@immutable @@nullable autoRenewPeriod: seconds
     @@immutable @@default(0) maxAutomaticTokenAssociations: int32
     @@immutable @@default(false) receiverSignatureRequired: bool
     @@immutable @@default(0) ownedNfts: int64

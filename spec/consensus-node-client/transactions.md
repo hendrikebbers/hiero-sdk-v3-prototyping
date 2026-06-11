@@ -130,7 +130,7 @@ type NodeBody {
 abstraction Transaction<$$Receipt extends Receipt> {
   
   @@nullable maxTransactionFee: NativeToken<ANY, ANY>
-  @@nullable validDuration: duration
+  @@nullable validDuration: seconds
   @@nullable memo: string
   
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> pack(payer: Account, nodes: list<Address>)  

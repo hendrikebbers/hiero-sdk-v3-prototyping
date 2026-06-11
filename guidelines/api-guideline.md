@@ -47,10 +47,27 @@ The following basic data types should be used in the API documentation.
 | `time`                     | A time value without date or timezone (nanosecond precision)          |
 | `dateTime`                 | A date and time value without timezone (nanosecond precision)         |
 | `zonedDateTime`            | A date and time value with timezone (nanosecond precision)            |
-| `duration`                 | A time based duration (nanosecond precision)                          |
+| `seconds`                  | A time based duration expressed in whole seconds (see note below)     |
 | `streamResult<TYPE>`       | A stream item that is either a success value of TYPE or an error      |
 | `function<R m(p: T, ...)>` | A function type (often called lambda/callable)                        |
 | `ANY`                      | A top type — accepts any value. Use sparingly (see best practices)    |
+
+#### Note on `seconds`
+
+`seconds` carries only whole-second precision. The choice is deliberate: every existing
+wire-format binding (e.g. HAPI's `Duration` proto = `int64 seconds`, no nanos field) drops
+sub-second precision at serialization, so a higher-precision type would silently lose data
+at every wire boundary.
+
+Concrete language bindings are encouraged to map `seconds` to the most idiomatic native
+duration type the language offers — for example `java.time.Duration` in Java,
+`std::time::Duration` in Rust, `time.Duration` in Go, `Duration` in Swift — **but must cap
+the user-visible precision to whole seconds**. A caller setting `Duration.ofMillis(1500)`
+on a `seconds`-typed field is rounded (implementation-defined: truncate or round-half-up;
+language guides specify their choice) to a whole-second value before serialization; bindings
+SHOULD surface this as a documented contract, not a hidden behaviour. If a future spec field
+genuinely needs sub-second precision, introduce a separate higher-precision type rather than
+widening `seconds`.
 
 ### Function Types
 

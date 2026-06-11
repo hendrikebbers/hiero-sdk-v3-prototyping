@@ -73,7 +73,7 @@ AccountCreateTransaction extends Transaction<AccountCreateReceipt> {
     @@immutable @@nullable accountMemo: string
     @@immutable @@default(false) receiverSignatureRequired: bool
     @@immutable @@nullable maxAutomaticTokenAssociations: int32
-    @@immutable @@nullable autoRenewPeriod: int64
+    @@immutable @@nullable autoRenewPeriod: seconds
     @@immutable @@nullable stakedAccountId: Address
     @@immutable @@nullable stakedNodeId: int64
     @@immutable @@default(false) declineStakingReward: bool
@@ -92,7 +92,7 @@ AccountUpdateTransaction extends Transaction<AccountUpdateReceipt> {
     @@immutable @@nullable accountMemo: string
     @@immutable @@nullable receiverSignatureRequired: bool
     @@immutable @@nullable maxAutomaticTokenAssociations: int32
-    @@immutable @@nullable autoRenewPeriod: int64
+    @@immutable @@nullable autoRenewPeriod: seconds
     @@immutable @@nullable expirationTime: zonedDateTime
     @@immutable @@nullable stakedAccountId: Address              // mutually exclusive with stakedNodeId
     @@immutable @@nullable stakedNodeId: int64                          // mutually exclusive with stakedAccountId

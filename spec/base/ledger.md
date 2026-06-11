@@ -54,6 +54,15 @@ MirrorNode {
     @@immutable restBaseUrl: string // base url of the mirror node REST API (scheme://host[:port]/api/v1)
 }
 
+// The zero address (0.0.0). HAPI uses this value as a clear-sentinel on update
+// transactions for Address-typed fields: writing ZERO_ADDRESS to e.g.
+// TopicUpdateTransaction.autoRenewAccount or AccountUpdateTransaction.stakedAccountId
+// removes the previously configured value (distinct from leaving the field at its default
+// "unchanged"). The consensus node interprets the sentinel server-side; SDKs do not invent
+// the semantic locally. Callers should not use this value as an actual account id — there
+// is no account 0.0.0 on the network.
+constant ZERO_ADDRESS: Address = Address{shard: 0, realm: 0, num: 0, checksum: ""}
+
 // factory methods of Address that should be added to the namespace in the best language dependent way
 
 // Parses Address from string format: "shard.realm.num" or "shard.realm.num-checksum"

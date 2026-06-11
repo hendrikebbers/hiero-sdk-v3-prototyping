@@ -50,9 +50,11 @@ file's *Questions & Comments*.
 
 ### 1.5 Topic / HCS
 
-`TopicCreate`, `TopicUpdate`, `TopicDelete`, `TopicMessageSubmit` (chunked) —
-**all :x:**. HIP-991 custom fees on topics (`customFees`, `feeScheduleKey`,
-`feeExemptKeyList`) — :x:
+`TopicCreate`, `TopicUpdate`, `TopicDelete` — :white_check_mark:
+([`transactions-topics.md`](spec/consensus-node-client/transactions-topics.md)).
+`TopicMessageSubmit` (chunked) — :x: (shares the chunking design question with
+`FileAppend`). HIP-991 custom fees on topics (`customFees`, `feeScheduleKey`,
+`feeExemptKeyList`) — :x: (depends on write-side custom-fee model from §2.3).
 
 ### 1.6 Schedule service (HIP-755 long-term)
 

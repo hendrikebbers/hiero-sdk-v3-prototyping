@@ -16,7 +16,7 @@ Contract {
     @@immutable contractId: Address
     @@immutable @@nullable adminKey: PublicKey
     @@immutable @@nullable autoRenewAccount: Address
-    @@immutable autoRenewPeriod: int32
+    @@immutable autoRenewPeriod: seconds
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
     @@immutable @@nullable expirationTimestamp: zonedDateTime

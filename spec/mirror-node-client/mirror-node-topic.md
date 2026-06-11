@@ -18,7 +18,7 @@ Topic {
     @@immutable @@nullable submitKey: PublicKey
     @@immutable @@nullable feeScheduleKey: PublicKey
     @@immutable @@nullable autoRenewAccount: Address
-    @@immutable autoRenewPeriod: int32
+    @@immutable autoRenewPeriod: seconds
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
     @@immutable memo: string
