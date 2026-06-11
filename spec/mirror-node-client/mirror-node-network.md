@@ -37,7 +37,7 @@ NetworkStake {
     @@immutable reservedStakingRewards: int64
     @@immutable rewardBalanceThreshold: int64
     @@immutable stakeTotal: int64
-    @@immutable stakingPeriodDuration: seconds
+    @@immutable stakingPeriod: seconds
     @@immutable stakingPeriodsStored: int64
     @@immutable stakingRewardFeeFraction: double
     @@immutable stakingRewardRate: int64
