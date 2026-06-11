@@ -23,9 +23,9 @@ Only the **account service** is currently specified
 
 | API in v2 | V3 spec |
 | --- | --- |
-| `TransferTransaction` (HBAR + fungible + NFT in one) | :x: |
-| `AccountAllowanceApproveTransaction` (HBAR / token / NFT / all serials) | :x: |
-| `AccountAllowanceDeleteTransaction` | :x: |
+| `TransferTransaction` (HBAR + fungible + NFT in one) | :white_check_mark: |
+| `AccountAllowanceApproveTransaction` (HBAR / token / NFT / all serials) | :white_check_mark: |
+| `AccountAllowanceDeleteTransaction` | :white_check_mark: |
 
 ### 1.2 Token service (HTS) — **entire service missing**
 
@@ -38,8 +38,10 @@ Only the **account service** is currently specified
 
 ### 1.3 File service
 
-`FileCreate`, `FileAppend` (chunked), `FileUpdate`, `FileDelete` — **all :x:**
-(Only the enterprise-layer abstraction exists, not the raw transactions.)
+`FileCreate`, `FileAppend` (chunked), `FileUpdate`, `FileDelete` — :white_check_mark:
+([`transactions-files.md`](spec/consensus-node-client/transactions-files.md)).
+Open: chunked-append model (per-chunk receipts vs. single-receipt facade) — tracked in that
+file's *Questions & Comments*.
 
 ### 1.4 Smart contract service
 
