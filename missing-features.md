@@ -94,7 +94,8 @@ Still missing per service:
 - ~~`FileContentsQuery`, `FileInfoQuery`~~ :white_check_mark:
   ([`queries-files.md`](spec/consensus-node-client/queries-files.md))
 - `TokenInfoQuery`, `TokenNftInfoQuery`
-- `TopicInfoQuery`
+- ~~`TopicInfoQuery`~~ :white_check_mark:
+  ([`queries-topics.md`](spec/consensus-node-client/queries-topics.md))
 - `ScheduleInfoQuery`
 - ~~`NetworkVersionInfoQuery`, `NodeAddressBookQuery`~~ :white_check_mark: — landed in
   `consensus-node-admin-client` instead of here, see §2.3
