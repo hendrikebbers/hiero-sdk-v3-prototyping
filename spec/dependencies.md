@@ -7,7 +7,7 @@ imports one or more types from namespace `B`".
 The namespaces group into the five `spec/` folders / layers:
 
 - **base** — `common`, `grpc`, `proto`, `nativeToken`, `keys`, `ledger`, `ledger.config`, `hedera`
-- **consensus-node-client** — `consensusnode.client`, `consensusnode.transactions[.accounts|.spi]`, `consensusnode.proto[.account]`
+- **consensus-node-client** — `consensusnode.client`, `consensusnode.transactions[.accounts|.spi]`, `consensusnode.queries[.accounts|.files]`, `consensusnode.proto[.account]`
 - **consensus-node-admin-client** — `consensusnode.admin.{freeze|system|nodes|network}`
 - **mirror-node-client** — `mirrornode` and its per-domain sub-namespaces
 - **enterprise** — `enterprise.service[.common|.account|.contract|.file|.token|.nft|.topic]`
@@ -58,6 +58,8 @@ flowchart LR
         cn_tx_accounts["…transactions.accounts"]
         cn_tx_spi["…transactions.spi"]
         cn_queries["consensusnode.queries"]
+        cn_queries_accounts["…queries.accounts"]
+        cn_queries_files["…queries.files"]
         cn_proto["consensusnode.proto"]
         cn_proto_account["…proto.account ∅"]
     end
@@ -114,10 +116,17 @@ flowchart LR
     cn_tx_spi --> grpc
     cn_tx_spi --> cn_proto
 
-    %% consensus-node-client (queries base; queries sub-namespaces not yet graphed)
+    %% consensus-node-client (queries)
     cn_queries --> ledger
     cn_queries --> cn_client
     cn_queries --> nativeToken
+    cn_queries_accounts --> ledger
+    cn_queries_accounts --> keys
+    cn_queries_accounts --> nativeToken
+    cn_queries_accounts --> cn_queries
+    cn_queries_files --> ledger
+    cn_queries_files --> keys
+    cn_queries_files --> cn_queries
 
     %% consensus-node-admin-client
     cn_admin_freeze --> ledger
@@ -197,7 +206,7 @@ flowchart LR
     classDef enterprise fill:#fce8e6,stroke:#ea4335,color:#000;
 
     class common,grpc,proto,nativeToken,keys,ledger,ledger_config,hedera base;
-    class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_queries,cn_proto,cn_proto_account consensus;
+    class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_queries,cn_queries_accounts,cn_queries_files,cn_proto,cn_proto_account consensus;
     class cn_admin_freeze,cn_admin_system,cn_admin_nodes,cn_admin_network admin;
     class mn,mn_account,mn_common,mn_contract,mn_network,mn_nft,mn_token,mn_topic,mn_transaction mirror;
     class ent_service,ent_common,ent_account,ent_contract,ent_file,ent_token,ent_nft,ent_topic enterprise;
