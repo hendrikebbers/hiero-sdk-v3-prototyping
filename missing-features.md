@@ -96,7 +96,9 @@ Still missing per service:
 - `TokenInfoQuery`, `TokenNftInfoQuery`
 - `TopicInfoQuery`
 - `ScheduleInfoQuery`
-- `NetworkVersionInfoQuery`, `NodeAddressBookQuery`
+- ~~`NetworkVersionInfoQuery`, `NodeAddressBookQuery`~~ :white_check_mark: — landed in
+  `consensus-node-admin-client` instead of here, see §2.3
+  ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md))
 - `MirrorNodeContractCallQuery` (HIP-1027), `MirrorNodeContractEstimateGasQuery`
   — these belong on `mirrornode.contract.ContractRepository`, not in `consensusnode.queries`
 
@@ -136,8 +138,8 @@ Rationale:
 - Splitting them into a separate artifact lets normal app authors take a smaller
   dependency and removes admin-only types from the documentation surface they
   browse.
-- The split is the natural place to land the future admin-only queries
-  (`NodeAddressBookQuery`, `NetworkVersionInfoQuery` — see §1.8) as the
+- The split is the natural place to land the admin-only queries
+  (`NodeAddressBookQuery`, `NetworkVersionInfoQuery` — now specified in §2.3) as the
   module grows.
 
 ### 2.1 System / network admin
@@ -157,8 +159,21 @@ Open: typed `NetworkAdminKey` reference, splitting the `freezeType` /
 `serviceEndpoints`, `gossipCaCertificate`, `grpcCertificateHash`,
 `grpcWebProxyEndpoint` (HIP-1046) — :white_check_mark:
 ([`transactions-nodes.md`](spec/consensus-node-admin-client/transactions-nodes.md)).
-Open: typed `NodeId` / `IpAddress` / `X509Certificate` placeholders — tracked in that file's
-*Questions & Comments*.
+Open: typed `NodeId` / `X509Certificate` placeholders — tracked in that file's
+*Questions & Comments*. (Typed `IpAddress` has landed in `base/ledger.md`.)
+
+### 2.3 Admin-side queries
+
+| Query | V3 spec |
+| --- | --- |
+| `NetworkVersionInfoQuery` (free) | :white_check_mark: ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md)) |
+| `NodeAddressBookQuery` (paid — backed by `FileGetContents` on the address-book file) | :white_check_mark: ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md)) |
+
+The two queries were originally listed under §1.8 (`consensus-node-client` queries) but
+moved to this module along with the DAB transactions: their natural caller is the same
+operator / tooling code that issues `NodeCreate` / `NodeUpdate`. Open: extract
+`SemanticVersion` into `base/common` once §3.1 lands a base type; surface tombstoned
+node-address entries explicitly — tracked in that file's *Questions & Comments*.
 
 ---
 

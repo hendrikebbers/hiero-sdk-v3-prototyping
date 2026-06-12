@@ -8,7 +8,7 @@ The namespaces group into the five `spec/` folders / layers:
 
 - **base** — `common`, `grpc`, `proto`, `nativeToken`, `keys`, `ledger`, `ledger.config`, `hedera`
 - **consensus-node-client** — `consensusnode.client`, `consensusnode.transactions[.accounts|.spi]`, `consensusnode.proto[.account]`
-- **consensus-node-admin-client** — `consensusnode.admin.{freeze|system|nodes}`
+- **consensus-node-admin-client** — `consensusnode.admin.{freeze|system|nodes|network}`
 - **mirror-node-client** — `mirrornode` and its per-domain sub-namespaces
 - **enterprise** — `enterprise.service[.common|.account|.contract|.file|.token|.nft|.topic]`
 
@@ -57,6 +57,7 @@ flowchart LR
         cn_tx["consensusnode.transactions"]
         cn_tx_accounts["…transactions.accounts"]
         cn_tx_spi["…transactions.spi"]
+        cn_queries["consensusnode.queries"]
         cn_proto["consensusnode.proto"]
         cn_proto_account["…proto.account ∅"]
     end
@@ -65,6 +66,7 @@ flowchart LR
         cn_admin_freeze["consensusnode.admin.freeze"]
         cn_admin_system["consensusnode.admin.system"]
         cn_admin_nodes["consensusnode.admin.nodes"]
+        cn_admin_network["consensusnode.admin.network"]
     end
 
     subgraph mirror["mirror-node-client"]
@@ -112,6 +114,11 @@ flowchart LR
     cn_tx_spi --> grpc
     cn_tx_spi --> cn_proto
 
+    %% consensus-node-client (queries base; queries sub-namespaces not yet graphed)
+    cn_queries --> ledger
+    cn_queries --> cn_client
+    cn_queries --> nativeToken
+
     %% consensus-node-admin-client
     cn_admin_freeze --> ledger
     cn_admin_freeze --> cn_tx
@@ -120,6 +127,9 @@ flowchart LR
     cn_admin_nodes --> ledger
     cn_admin_nodes --> keys
     cn_admin_nodes --> cn_tx
+    cn_admin_network --> ledger
+    cn_admin_network --> cn_queries
+    cn_admin_network --> cn_admin_nodes
 
     %% mirror-node-client
     mn --> ledger
@@ -187,8 +197,8 @@ flowchart LR
     classDef enterprise fill:#fce8e6,stroke:#ea4335,color:#000;
 
     class common,grpc,proto,nativeToken,keys,ledger,ledger_config,hedera base;
-    class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_proto,cn_proto_account consensus;
-    class cn_admin_freeze,cn_admin_system,cn_admin_nodes admin;
+    class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_queries,cn_proto,cn_proto_account consensus;
+    class cn_admin_freeze,cn_admin_system,cn_admin_nodes,cn_admin_network admin;
     class mn,mn_account,mn_common,mn_contract,mn_network,mn_nft,mn_token,mn_topic,mn_transaction mirror;
     class ent_service,ent_common,ent_account,ent_contract,ent_file,ent_token,ent_nft,ent_topic enterprise;
 ```
