@@ -54,33 +54,21 @@ file's *Questions & Comments*.
 ([`transactions-topics.md`](spec/consensus-node-client/transactions-topics.md)).
 `TopicMessageSubmit` (chunked) — :x: (shares the chunking design question with
 `FileAppend`). HIP-991 custom fees on topics (`customFees`, `feeScheduleKey`,
-`feeExemptKeyList`) — :x: (depends on write-side custom-fee model from §2.3).
+`feeExemptKeyList`) — :x: (depends on write-side custom-fee model from §3.3).
 
 ### 1.6 Schedule service (HIP-755 long-term)
 
 `ScheduleCreate`, `ScheduleSign`, `ScheduleDelete` + `customFeeLimits` —
 **all :x:**
 
-### 1.7 System / network admin
-
-`FreezeTransaction` (`FREEZE_ONLY`, `PREPARE_UPGRADE`, `FREEZE_UPGRADE`,
-`FREEZE_ABORT`, `TELEMETRY_UPGRADE`), `SystemDelete`, `SystemUndelete` —
-**all :x:**
-
-### 1.8 Dynamic Address Book (HIP-869 / HIP-1064)
-
-`NodeCreate`, `NodeUpdate`, `NodeDelete` with `gossipEndpoints`,
-`serviceEndpoints`, `gossipCaCertificate`, `grpcCertificateHash`,
-`grpcWebProxyEndpoint` (HIP-1046) — **all :x:**
-
-### 1.9 Utility
+### 1.7 Utility
 
 - `PrngTransaction` (HIP-351) — :x:
 - `BatchTransaction` (HIP-551, with `batchify()` on inner transactions) — :x:
 - Hiero Hooks (HIP-1195): `HookStoreTransaction`, `EvmHook`, `EvmHookCall`,
   `HookCreationDetails`, ... — :x:
 
-### 1.10 Queries (consensus-node-side)
+### 1.8 Queries (consensus-node-side)
 
 Base abstractions are now specified in
 [`spec/consensus-node-client/queries.md`](spec/consensus-node-client/queries.md):
@@ -112,7 +100,7 @@ Still missing per service:
 - `MirrorNodeContractCallQuery` (HIP-1027), `MirrorNodeContractEstimateGasQuery`
   — these belong on `mirrornode.contract.ContractRepository`, not in `consensusnode.queries`
 
-### 1.11 Features on `Transaction<...>` / `PackedTransaction<...>`
+### 1.9 Features on `Transaction<...>` / `PackedTransaction<...>`
 
 The lifecycle (build → pack → sign → submit) is now explicit. `Submittable` (defined in
 `consensusnode.client`) is the shared retry/submit base for both `PackedTransaction` and
@@ -130,9 +118,53 @@ The lifecycle (build → pack → sign → submit) is now explicit. `Submittable
 
 ---
 
-## 2. `base` — missing types and concepts
+## 2. `consensus-node-admin-client` — admin-only transactions
 
-### 2.1 Identifier types
+A new module planned on top of `consensus-node-client`. It collects the transactions
+that only network operators / council members need (system freeze + upgrade flow,
+system-delete/-undelete of entities, Dynamic Address Book node operations) and keeps
+them out of the surface that "normal" applications consume. The module depends on
+`consensus-node-client` (it reuses `Transaction<$$Receipt>`, the SPI, signing /
+packing lifecycle, and base types) but is not imported by it — the dependency edge
+is strictly `consensus-node-admin-client --> consensus-node-client`.
+
+Rationale:
+
+- These transactions require privileged signing keys (the network's
+  system-admin / freeze / address-book keys) and have no use case for typical
+  end-user apps or wallets.
+- Splitting them into a separate artifact lets normal app authors take a smaller
+  dependency and removes admin-only types from the documentation surface they
+  browse.
+- The split is the natural place to land the future admin-only queries
+  (`NodeAddressBookQuery`, `NetworkVersionInfoQuery` — see §1.8) as the
+  module grows.
+
+### 2.1 System / network admin
+
+`FreezeTransaction` (`FREEZE_ONLY`, `PREPARE_UPGRADE`, `FREEZE_UPGRADE`,
+`FREEZE_ABORT`, `TELEMETRY_UPGRADE`) — :white_check_mark:
+([`transactions-freeze.md`](spec/consensus-node-admin-client/transactions-freeze.md)).
+`SystemDelete`, `SystemUndelete` — :white_check_mark:
+([`transactions-system.md`](spec/consensus-node-admin-client/transactions-system.md)).
+Open: typed `NetworkAdminKey` reference, splitting the `freezeType` /
+`@@oneOf(fileId, contractId)` payloads into concrete subtypes — tracked in each file's
+*Questions & Comments*.
+
+### 2.2 Dynamic Address Book (HIP-869 / HIP-1064)
+
+`NodeCreate`, `NodeUpdate`, `NodeDelete` with `gossipEndpoints`,
+`serviceEndpoints`, `gossipCaCertificate`, `grpcCertificateHash`,
+`grpcWebProxyEndpoint` (HIP-1046) — :white_check_mark:
+([`transactions-nodes.md`](spec/consensus-node-admin-client/transactions-nodes.md)).
+Open: typed `NodeId` / `IpAddress` / `X509Certificate` placeholders — tracked in that file's
+*Questions & Comments*.
+
+---
+
+## 3. `base` — missing types and concepts
+
+### 3.1 Identifier types
 
 Today only a generic `Address` exists. In v2 these are first-class types:
 
@@ -153,7 +185,7 @@ Today only a generic `Address` exists. In v2 these are first-class types:
 | `SemanticVersion` | :x: |
 | `TransactionHash` (as a type, separate from `TransactionId`) | :x: |
 
-### 2.2 Keys
+### 3.2 Keys
 
 | API in v2 | V3 spec |
 | --- | --- |
@@ -179,7 +211,7 @@ current uses are in [`transactions-accounts.md`](spec/consensus-node-client/tran
 (account `key`) and [`transactions-files.md`](spec/consensus-node-client/transactions-files.md)
 (file `keys`).
 
-### 2.3 Custom fees (HTS + HIP-991)
+### 3.3 Custom fees (HTS + HIP-991)
 
 | Type | V3 spec |
 | --- | --- |
@@ -191,13 +223,13 @@ current uses are in [`transactions-accounts.md`](spec/consensus-node-client/tran
 | `AssessedCustomFee` (in record) | :x: |
 | Write-side custom-fee builder for `TokenCreate` / `TopicCreate` | :x: |
 
-### 2.4 Fee schedule / fee estimation
+### 3.4 Fee schedule / fee estimation
 
 `FeeSchedule`, `TransactionFeeSchedule`, `FeeComponents`, `FeeData`,
 `FeeEstimate` / `FeeEstimateQuery` / `FeeEstimateResponse` (HIP-1313 with
 high-volume multiplier) — **all :x:**
 
-### 2.5 Records / receipts — fields on `Receipt` / `Record`
+### 3.5 Records / receipts — fields on `Receipt` / `Record`
 
 Today `Receipt` / `Record<$$Receipt>` only carries base fields. Missing v2
 fields include: `exchangeRate`, `topicSequenceNumber`, `topicRunningHash`,
@@ -205,7 +237,7 @@ fields include: `exchangeRate`, `topicSequenceNumber`, `topicRunningHash`,
 `automaticTokenAssociations`, `paidStakingRewards`, `evmAddress`,
 `prngBytes` / `prngNumber`, `signerNonce`, `pendingAirdropRecords`.
 
-### 2.6 Status / enums
+### 3.6 Status / enums
 
 `BasicTransactionStatus` in V3 has ~20 values; the v2 `Status` enum has
 **~300+ values** (`BUSY`, `THROTTLED_AT_CONSENSUS`, `INSUFFICIENT_PAYER_BALANCE`,
@@ -215,16 +247,16 @@ codes should ship in the standard mapping. Also missing: `TokenKeyValidation`
 
 ---
 
-## 3. `mirror-node-client` — missing endpoints
+## 4. `mirror-node-client` — missing endpoints
 
-### 3.1 Entirely missing domains
+### 4.1 Entirely missing domains
 
 | Domain | V3 spec |
 | --- | --- |
 | **Blocks** (HIP-415): `GET /blocks`, `GET /blocks/{hashOrNumber}` | :x: |
 | **Schedules**: `GET /schedules`, `GET /schedules/{id}` (filters: `executed`, `account.id`, `schedule.id`) | :x: |
 
-### 3.2 Missing endpoints per existing domain
+### 4.2 Missing endpoints per existing domain
 
 **Accounts** — missing:
 
@@ -255,7 +287,7 @@ codes should ship in the standard mapping. Also missing: `TokenKeyValidation`
 
 - `GET /transactions/{txId}/stateproof`
 
-### 3.3 Query parameter / filter concepts
+### 4.3 Query parameter / filter concepts
 
 - **Range / operator filters** on `timestamp`, `balance`, `sequencenumber`
   (`eq:`, `gt:`, `gte:`, `lt:`, `lte:`, `ne:` plus double-parameter ranges) —
@@ -266,7 +298,7 @@ codes should ship in the standard mapping. Also missing: `TokenKeyValidation`
 
 ---
 
-## 4. `enterprise` service layer — gaps to full coverage
+## 5. `enterprise` service layer — gaps to full coverage
 
 | Service / method | V3 spec |
 | --- | --- |
@@ -293,9 +325,9 @@ Also still open in **Questions & Comments**:
 
 ---
 
-## 5. Client / networking / operator setup (`HieroClient`)
+## 6. Client / networking / operator setup (`HieroClient`)
 
-### 5.1 Operator identity is coupled to an in-memory `PrivateKey`
+### 6.1 Operator identity is coupled to an in-memory `PrivateKey`
 
 `HieroClient` requires an `operatorAccount: Account`
 ([`spec/consensus-node-client/client.md`](spec/consensus-node-client/client.md)), and
@@ -337,7 +369,7 @@ This is an architectural correction, not a feature addition. It should land befo
 attempts to address sponsored-query payers (which depend on the same identity / signer
 decoupling) or shipping consumers for whom external signing is non-negotiable.
 
-### 5.2 Other client features missing from v2
+### 6.2 Other client features missing from v2
 
 The V3 spec has a lean `HieroClient<$$Unit>`. v2 offers significantly more
 setup flexibility:
@@ -355,7 +387,7 @@ setup flexibility:
 
 ---
 
-## 6. Sub-layers without content
+## 7. Sub-layers without content
 
 - `spec/consensus-node-client/proto.md` and `proto-accounts.md` — empty
   placeholders
@@ -368,7 +400,7 @@ setup flexibility:
 
 ---
 
-## 7. Suggested prioritization
+## 8. Suggested prioritization
 
 1. **SDK parity (must-have):** `TransferTransaction` (HBAR), token-service
    transactions (`Create` / `Associate` / `Mint` / `Burn` / transfer),
@@ -378,11 +410,12 @@ setup flexibility:
    topic / schedule info queries). Query base abstractions + first two
    concrete queries already landed; pattern is established for the rest.
 2. **Modern HIPs:** Schedule (HIP-755), airdrops (HIP-904), DAB node ops
-   (HIP-869 / HIP-1046), custom fees on topics (HIP-991), batch (HIP-551),
+   (HIP-869 / HIP-1046 — land in `consensus-node-admin-client`, §2),
+   custom fees on topics (HIP-991), batch (HIP-551),
    mutable NFT metadata (HIP-657).
-3. **Auxiliary:** PRNG, `Freeze` / `SystemDelete`, allowances, staking
-   transactions, hooks (HIP-1195), `Mnemonic` + `KeyList` / `ThresholdKey`,
-   full custom-fee hierarchy for builders.
+3. **Auxiliary:** PRNG, `Freeze` / `SystemDelete` (also `consensus-node-admin-client`,
+   §2), allowances, staking transactions, hooks (HIP-1195),
+   `Mnemonic` + `KeyList` / `ThresholdKey`, full custom-fee hierarchy for builders.
 4. **Mirror node:** blocks, schedules, contracts
    (results / state / logs / call), airdrops, allowances, rewards, generic
    range-filter model.

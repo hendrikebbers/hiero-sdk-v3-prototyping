@@ -4,10 +4,11 @@ This document gives an overview of how the V3 API modules (namespaces) depend on
 from the `requires {Type} from <namespace>` declarations in the spec files — an edge `A --> B` means "namespace `A`
 imports one or more types from namespace `B`".
 
-The namespaces group into the four `spec/` folders / layers:
+The namespaces group into the five `spec/` folders / layers:
 
 - **base** — `common`, `grpc`, `proto`, `nativeToken`, `keys`, `ledger`, `ledger.config`, `hedera`
 - **consensus-node-client** — `consensusnode.client`, `consensusnode.transactions[.accounts|.spi]`, `consensusnode.proto[.account]`
+- **consensus-node-admin-client** — `consensusnode.admin.{freeze|system|nodes}`
 - **mirror-node-client** — `mirrornode` and its per-domain sub-namespaces
 - **enterprise** — `enterprise.service[.common|.account|.contract|.file|.token|.nft|.topic]`
 
@@ -17,6 +18,7 @@ The namespaces group into the four `spec/` folders / layers:
 flowchart LR
     enterprise["enterprise<br/>(high-level service layer)"]
     consensus["consensus-node-client"]
+    admin["consensus-node-admin-client<br/>(privileged council ops)"]
     mirror["mirror-node-client"]
     base["base<br/>(common, ledger, keys, nativeToken, …)"]
 
@@ -24,11 +26,16 @@ flowchart LR
     enterprise --> mirror
     enterprise --> base
     consensus --> base
+    admin --> consensus
+    admin --> base
     mirror --> base
 ```
 
-`mirror-node-client` and `consensus-node-client` are independent of each other; `enterprise` builds on top of
-`consensus-node-client`, `mirror-node-client`, and `base`. Everything ultimately rests on `base`.
+`mirror-node-client` and `consensus-node-client` are independent of each other;
+`consensus-node-admin-client` is opt-in on top of `consensus-node-client` (privileged
+freeze / system-delete / DAB-node transactions that normal applications do not consume);
+`enterprise` builds on top of `consensus-node-client`, `mirror-node-client`, and `base`.
+Everything ultimately rests on `base`.
 
 ## Namespace dependency graph
 
@@ -52,6 +59,12 @@ flowchart LR
         cn_tx_spi["…transactions.spi"]
         cn_proto["consensusnode.proto"]
         cn_proto_account["…proto.account ∅"]
+    end
+
+    subgraph admin["consensus-node-admin-client"]
+        cn_admin_freeze["consensusnode.admin.freeze"]
+        cn_admin_system["consensusnode.admin.system"]
+        cn_admin_nodes["consensusnode.admin.nodes"]
     end
 
     subgraph mirror["mirror-node-client"]
@@ -98,6 +111,15 @@ flowchart LR
     cn_tx_spi --> cn_tx
     cn_tx_spi --> grpc
     cn_tx_spi --> cn_proto
+
+    %% consensus-node-admin-client
+    cn_admin_freeze --> ledger
+    cn_admin_freeze --> cn_tx
+    cn_admin_system --> ledger
+    cn_admin_system --> cn_tx
+    cn_admin_nodes --> ledger
+    cn_admin_nodes --> keys
+    cn_admin_nodes --> cn_tx
 
     %% mirror-node-client
     mn --> ledger
@@ -160,11 +182,13 @@ flowchart LR
 
     classDef base fill:#e8f0fe,stroke:#4285f4,color:#000;
     classDef consensus fill:#e6f4ea,stroke:#34a853,color:#000;
+    classDef admin fill:#d2e3fc,stroke:#1967d2,color:#000;
     classDef mirror fill:#fef7e0,stroke:#f9ab00,color:#000;
     classDef enterprise fill:#fce8e6,stroke:#ea4335,color:#000;
 
     class common,grpc,proto,nativeToken,keys,ledger,ledger_config,hedera base;
     class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_proto,cn_proto_account consensus;
+    class cn_admin_freeze,cn_admin_system,cn_admin_nodes admin;
     class mn,mn_account,mn_common,mn_contract,mn_network,mn_nft,mn_token,mn_topic,mn_transaction mirror;
     class ent_service,ent_common,ent_account,ent_contract,ent_file,ent_token,ent_nft,ent_topic enterprise;
 ```
@@ -184,6 +208,11 @@ flowchart LR
   domain types (`Nft`, `NftMetadata`, `Token`, `TokenInfo`, `Balance`) for its query methods instead of redeclaring
   them. (`enterprise.service.contract` keeps a thin local `Contract` type and therefore does not depend on
   `mirrornode.contract`.)
+- **Admin layer is opt-in and one-way:** `consensus-node-admin-client` depends on `consensus-node-client` (it
+  reuses `Transaction<$$Receipt>`, `Receipt`, and the signing / packing lifecycle) but is not depended on by it —
+  the edge is strictly `admin --> consensus-node-client`. Applications that never call freeze / system-delete / DAB
+  node operations do not pull the admin module in. `enterprise` does not depend on the admin module either; surfacing
+  these privileged operations through the high-level service layer is intentionally out of scope.
 - **Session as the shared root of `enterprise`:** `enterprise.service` defines the `Session` (network settings,
   operator account, transaction signer, read-your-writes high-water-mark) that every concrete service
   (`…service.account`, `…service.contract`, `…service.file`, `…service.token`, `…service.nft`, `…service.topic`)
