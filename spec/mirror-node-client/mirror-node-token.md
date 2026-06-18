@@ -9,6 +9,7 @@ namespace mirrornode.token
 requires {Address, MirrorNode} from ledger
 requires {FixedFee} from mirrornode.common
 requires {Page} from common
+requires {TokenType, TokenSupplyType} from token
 
 @@finalType
 Balance {
@@ -41,17 +42,6 @@ CustomFee {
     @@immutable fractionalFees: list<FractionalFee>
     @@immutable royaltyFees: list<RoyaltyFee>
 }
-
-enum TokenSupplyType {
-    INFINITE
-    FINITE
-}
-
-enum TokenType {
-    FUNGIBLE_COMMON
-    NON_FUNGIBLE_UNIQUE
-}
-
 
 @@finalType
 TokenInfo {

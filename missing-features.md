@@ -27,14 +27,37 @@ Only the **account service** is currently specified
 | `AccountAllowanceApproveTransaction` (HBAR / token / NFT / all serials) | :white_check_mark: |
 | `AccountAllowanceDeleteTransaction` | :white_check_mark: |
 
-### 1.2 Token service (HTS) — **entire service missing**
+### 1.2 Token service (HTS) — core lifecycle landed, admin / HIP-904 still missing
 
-`TokenCreate`, `TokenUpdate`, `TokenDelete`, `TokenAssociate`, `TokenDissociate`,
-`TokenMint`, `TokenBurn`, `TokenWipe`, `TokenFreeze` / `TokenUnfreeze`,
+Core lifecycle and supply transactions are now specified in
+[`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md):
+
+| Transaction | V3 spec |
+| --- | --- |
+| `TokenCreate` | :white_check_mark: |
+| `TokenUpdate` | :white_check_mark: |
+| `TokenDelete` | :white_check_mark: |
+| `TokenAssociate` | :white_check_mark: |
+| `TokenDissociate` | :white_check_mark: |
+| `TokenMint` (FT amount + NFT metadata) | :white_check_mark: |
+| `TokenBurn` (FT amount + NFT serials) | :white_check_mark: |
+
+Open inside that file's *Questions & Comments*: `Key` sum-type still missing (every key field is
+typed as `PublicKey`); HIP-540 key-clearing not expressible until `KeyList` lands;
+`TokenCreate.customFees` write-side builder deferred (depends on §3.3).
+
+Still missing — admin operations and HIP-904 airdrops:
+
+`TokenWipe`, `TokenFreeze` / `TokenUnfreeze`,
 `TokenGrantKyc` / `TokenRevokeKyc`, `TokenPause` / `TokenUnpause`,
 `TokenFeeScheduleUpdate`, `TokenUpdateNfts` (HIP-657),
 `TokenAirdrop` / `TokenClaimAirdrop` / `TokenCancelAirdrop` /
 `TokenReject` (HIP-904) — **all :x:**
+
+Also new in base: [`spec/base/token.md`](spec/base/token.md) (`token` namespace) now hosts the
+`TokenType` / `TokenSupplyType` enums shared by the write side and the mirror-node read side; it
+is the planned future home for the typed `TokenId` / `NftId` / `PendingAirdropId` identifiers
+tracked in §3.1.
 
 ### 1.3 File service
 
