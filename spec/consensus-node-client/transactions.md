@@ -310,3 +310,32 @@ signed.submit(client);
 ```
 
 ## Questions & Comments
+
+- **`setRegenerateTransactionId(boolean)` is intentionally NOT part of V3.** In v2 the SDK
+  silently regenerates a `TransactionId` (and retries) when the network rejects a transaction
+  with `TRANSACTION_EXPIRED` or `INVALID_TRANSACTION_DURATION`. This is **incompatible with the
+  V3 transaction model** and will not be re-introduced.
+
+  The fundamental problem: every `NodeSignature` on a `PackedTransaction` signs the serialized
+  `TransactionBody` bytes, and the body carries the `TransactionId`. Regenerating the id
+  therefore changes the body bytes, which silently invalidates every signature already
+  collected. In V3, signing is modelled around exactly this property — the
+  `Transaction` → `PackedTransaction` split (ADR-0001) exists so that the byte-stable signing
+  surface is visible in the type system, and the offline / multi-party / HSM flows documented
+  above (`signableBodies()`, `sign(list<NodeSignature>)`, `fromBytes(...)`) all assume the
+  packed bytes do not mutate.
+
+  A "regenerate and retry" toggle on top of those flows would either:
+  - silently drop the previously collected signatures (data loss the user did not consent to —
+    the custodians who already signed never agreed to a different `TransactionId`), or
+  - go behind the type-system guarantee that `PackedTransaction.toBytes()` is the canonical
+    payload (every consumer who persisted a `toBytes()` snapshot would now diverge from the
+    submitted one).
+
+  Neither is acceptable. The V3 contract for `TRANSACTION_EXPIRED` is therefore explicit:
+  callers re-build (`Transaction.pack(...)`) and re-collect signatures. A future high-level
+  helper at the `enterprise.service.*` layer **may** wrap "pack + sign with operator + submit;
+  on TRANSACTION_EXPIRED repeat the whole pack+sign cycle" for the single-signer case where
+  the loss-of-signatures problem is moot — but that lives above this layer, not as a flag on
+  `Transaction`. Tracked in
+  [`missing-features.md`](../../missing-features.md) section 1.9.

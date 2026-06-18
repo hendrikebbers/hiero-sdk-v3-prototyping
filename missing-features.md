@@ -137,10 +137,39 @@ The lifecycle (build → pack → sign → submit) is now explicit. `Submittable
 | Explicit freeze step | :white_check_mark: via `Transaction.pack(payer, nodes)` |
 | `addSignature(PublicKey, byte[])` (offline signing) | :white_check_mark: via `PackedTransaction.sign(list<NodeSignature>)` |
 | `getSignatures()` / `signableNodeBodyBytesList()` (HSM workflow) | :white_check_mark: via `nodeSignatures` field + `signableBodies()` |
-| `getTransactionHash()` / `getTransactionHashPerNode()` | :x: |
-| `setRegenerateTransactionId(boolean)` | :x: |
+| `getTransactionHash()` / `getTransactionHashPerNode()` | :x: deliberately deferred — see note below |
+| `setRegenerateTransactionId(boolean)` | :x: will NOT land in V3 — see note below (and [`transactions.md`](spec/consensus-node-client/transactions.md) *Questions & Comments*) |
 | `batchify(Client, Key)` | :x: |
 | Jumbo-tx size (HIP-1300): `bodySize`, `bodySizeAllChunks` | :x: |
+
+Notes on the two annotated rows:
+
+- **`getTransactionHash()` / `getTransactionHashPerNode()` — deliberately deferred.** These are
+  pure SDK conveniences that expose the standard Hedera on-chain transaction hash (SHA-384 of
+  the `SignedTransaction` bytes — and one hash per target node, because the body's
+  `nodeAccountID` field differs per node). They are *not* required for any V3 capability: the
+  hash is reconstructible by any caller from `PackedTransaction.toBytes()` (single submitted
+  node) or from `PackedTransaction.signableBodies()` plus the collected `NodeSignature` set
+  (per-node hashes). Mirror-node correlation by hash (`GET /api/v1/transactions/{hash}`) is
+  the most common driver for exposing these on `PackedTransaction`; we will revisit once a
+  concrete consumer in `mirrornode.*` or `enterprise.service.*` needs them. Until then, keeping
+  the surface narrow is preferred — adding `transactionHash` / `nodeTransactionHashes`
+  accessors later is purely additive.
+
+- **`setRegenerateTransactionId(boolean)` — will NOT land in V3.** Architecturally incompatible
+  with the V3 transaction model: each `NodeSignature` signs the serialized `TransactionBody`,
+  which carries the `TransactionId`; regenerating the id changes the body bytes and silently
+  invalidates every signature already collected. The V3 model is built around the
+  byte-stability boundary that the `Transaction` → `PackedTransaction` split makes visible
+  (ADR-0001), and the offline / multi-party / HSM signing flows (`signableBodies()`,
+  `sign(list<NodeSignature>)`, `fromBytes(...)`) all depend on it. A "regenerate and retry"
+  toggle would either silently drop already-collected signatures (data loss the custodians did
+  not consent to) or break the contract that `toBytes()` is the canonical payload. The V3
+  answer to `TRANSACTION_EXPIRED` is therefore explicit: the caller re-builds
+  (`Transaction.pack(...)`) and re-collects signatures. A future single-signer convenience
+  ("pack + sign-with-operator + submit; on expiry, retry the whole cycle") may live in the
+  `enterprise.service.*` layer where loss-of-signatures is moot. Full rationale in
+  [`transactions.md`](spec/consensus-node-client/transactions.md) *Questions & Comments*.
 
 ---
 
