@@ -11,41 +11,91 @@ Every entity on a Hiero ledger lives in a `(shard, realm)` space; what differs b
 kinds is only the **selector** — the third part of the identifier that picks the specific
 entity within `(shard, realm)`. That observation drives the type hierarchy:
 
-```
-                       BaseAddress (abstract)
-                  shard, realm, checksum
-                       │
-       ┌───────────────┼─────────────────────────────────────────────┐
-       │               │                                             │
-     Address       ContractId                                    AccountId
-   + num         + num xor evmAddress             + num xor evmAddress xor alias
-  (tokens,    (HAPI ContractID:                  (HAPI AccountID:
-   topics,    oneof{contractNum,                  oneof{accountNum,
-   files,           evm_address})                       alias: bytes —
-   schedules)                                            EVM addr OR
-                                                         HIP-32 key alias})
+```mermaid
+classDiagram
+    direction TB
+
+    class BaseAddress {
+        <<abstraction>>
+        +shard: uint64
+        +realm: uint64
+        +checksum: string
+        +num: uint64?
+        +validateChecksum(ledger) bool
+        +toString() string
+        +toStringWithChecksum() string
+    }
+
+    class Address {
+        +num: uint64
+    }
+
+    class EvmCapableAddress {
+        <<abstraction>>
+        +evmAddress: EvmAddress?
+    }
+
+    class ContractId
+
+    class AccountId {
+        +alias: bytes?
+    }
+
+    class EvmAddress {
+        +bytes: bytes
+        +toString() string
+    }
+
+    BaseAddress <|-- Address
+    BaseAddress <|-- EvmCapableAddress
+    EvmCapableAddress <|-- ContractId
+    EvmCapableAddress <|-- AccountId
+    EvmCapableAddress ..> EvmAddress : uses
+
+    note for Address "@@override num: uint64\n(narrowed from nullable)\n\nused for: tokens, topics, files, schedules"
+    note for ContractId "@@oneOf(num, evmAddress)\n\nHAPI ContractID:\noneof{contractNum, evm_address}"
+    note for AccountId "@@oneOf(num, evmAddress, alias)\n\nHAPI AccountID:\noneof{accountNum,\n      alias: bytes\n        — EVM addr OR\n        — HIP-32 key alias}"
 ```
 
-- **`BaseAddress`** is an `abstraction` carrying the shared `(shard, realm, checksum)` and the
-  common string / checksum methods. It is never instantiated directly.
+Nullable fields are marked with a trailing `?` in the diagram (Mermaid has no native
+nullable notation); in the spec they carry `@@nullable`. The `num` slot lives on
+`BaseAddress` as `@@nullable` and is **narrowed** to non-null on `Address` via
+`@@override` — see the *Narrowing inherited nullability* section in
+[`api-guideline.md`](../../guidelines/api-guideline.md) for the full rule.
+
+- **`BaseAddress`** is an `abstraction` carrying the shared `(shard, realm, checksum)` and
+  the `@@nullable num: uint64` slot, plus the common string / checksum methods. Never
+  instantiated directly. The `num` slot is `@@nullable` here because some child kinds
+  (EVM-only `ContractId` / `AccountId`) do not carry one.
 - **`Address`** is the concrete address kind for entities whose HAPI id is purely
-  `(shard, realm, num)`: tokens, topics, files, schedules. This is also the typed identifier
-  used throughout the spec wherever a single-number entity is referenced.
-- **`ContractId`** mirrors HAPI's `ContractID` oneof: a contract may be addressed either by its
-  Hiero number or by its 20-byte EVM address.
-- **`AccountId`** mirrors HAPI's `AccountID`, but **splits** the `bytes alias` field of HAPI
-  into two typed slots — `evmAddress: EvmAddress` (HIP-583 EVM-alias) and `alias: bytes` (HIP-32
-  public-key alias) — so the type system tells the caller which alias form they hold instead of
-  forcing a runtime length check.
+  `(shard, realm, num)`: tokens, topics, files, schedules. It **narrows** the inherited
+  `num` slot to non-nullable via `@@override num: uint64` — on every `Address` instance,
+  `num` is guaranteed to be set. Also the typed identifier used throughout the spec wherever
+  a single-number entity is referenced.
+- **`EvmCapableAddress`** is an `abstraction` for entities that can be addressed either
+  numerically or by a 20-byte EVM address. Adds the `@@nullable evmAddress: EvmAddress` slot
+  shared by `ContractId` and `AccountId`; `num` is inherited from `BaseAddress`, still
+  `@@nullable`. Does **not** itself carry an `@@oneOf` — each concrete child tightens the
+  constraint with its own `@@oneOf`, which is the LSP-safe direction (subtypes may
+  strengthen invariants, never weaken them).
+- **`ContractId`** mirrors HAPI's `ContractID` oneof. Structurally empty — `num` and
+  `evmAddress` are inherited; ContractId's only contribution is the `@@oneOf(num, evmAddress)`
+  constraint.
+- **`AccountId`** mirrors HAPI's `AccountID`, but **splits** the opaque `bytes alias` field
+  of HAPI into two typed slots — `evmAddress: EvmAddress` (HIP-583 EVM-alias, inherited from
+  `EvmCapableAddress`) and `alias: bytes` (HIP-32 public-key alias) — so the type system
+  tells the caller which alias form they hold instead of forcing a runtime length check.
 
-The hierarchy is **strictly Liskov-clean**: every concrete child adds fields without ever
-weakening a parent invariant. `Address.num` is always set; `ContractId` / `AccountId` carry
-their own `num` (nullable) plus their own `@@oneOf` constraint as siblings, not as descendants
-of `Address`. No meta-language extension was needed.
+The hierarchy is **strictly Liskov-clean**: every child either adds new fields, narrows an
+inherited nullability via `@@override` (a tightening), or adds its own `@@oneOf` constraint
+(also a tightening). Nothing in the hierarchy weakens a parent invariant. The single
+meta-language addition this required is the *Narrowing inherited nullability* rule
+documented in [`api-guideline.md`](../../guidelines/api-guideline.md); the `@@oneOf`
+constraints sit on the concrete children only, so no constraint widening is needed.
 
-`EvmAddress` is the value type for raw 20-byte EVM addresses — used both as the alias slot in
-`ContractId` / `AccountId` and as a stand-alone return type wherever a flat EVM address appears
-(mirror-node responses, contract-call results, ...).
+`EvmAddress` is the value type for raw 20-byte EVM addresses — used both as the
+`evmAddress` slot in `EvmCapableAddress` and as a stand-alone return type wherever a flat
+EVM address appears (mirror-node responses, contract-call results, ...).
 
 ## API Schema
 
@@ -61,13 +111,15 @@ Ledger<$$Unit extends NativeTokenUnit> {
 }
 
 // Abstract base for every entity identifier that lives in the (shard, realm)-space of a Hiero
-// ledger. Every concrete address kind adds its own selector (the part that picks the specific
-// entity within (shard, realm)). Never instantiated directly. See the description above for the
-// full hierarchy.
+// ledger. Every concrete address kind has a num "slot" (the numeric selector within
+// (shard, realm)) — required on Address, optional on EvmCapableAddress and its children. The
+// shared methods (checksum validation, string formatting) live here as well. Never
+// instantiated directly. See the description above for the full hierarchy.
 abstraction BaseAddress {
     @@immutable shard: uint64                                 // shard number
     @@immutable realm: uint64                                 // realm number
     @@immutable checksum: string                              // protocol-side checksum over the (shard, realm, selector) form; empty string when no checksum applies (e.g. an EVM-address-only ContractId / AccountId before materialisation)
+    @@immutable @@nullable num: uint64                        // Hiero entity number. NULLABLE here because EVM-form ContractId / AccountId can be addressed without a num. Tightened to non-nullable on `Address` via @@override (see api-guideline.md → Narrowing inherited nullability).
 
     // Validates the checksum against the given ledger's checksum scheme.
     bool validateChecksum(ledger: Ledger<ANY>)
@@ -87,7 +139,7 @@ abstraction BaseAddress {
 // the typed identifier referenced throughout the spec wherever a single-num entity appears.
 @@finalType
 Address extends BaseAddress {
-    @@immutable num: uint64                                   // entity number within (shard, realm)
+    @@immutable @@override num: uint64                        // tightening: on Address, num is always set
 }
 
 // 20-byte EVM address — a flat, single-value identifier for EVM-side entities. NOT a
@@ -108,18 +160,24 @@ type EvmAddress {
 // Wraps raw bytes. `value.length` must equal 20; otherwise throws illegal-format.
 @@throws(illegal-format) @@static EvmAddress EvmAddress.fromBytes(value: bytes)
 
+// Abstract subtype of BaseAddress for entities that can be addressed either by their numeric
+// Hiero id (shard, realm, num) OR by a 20-byte EVM address. `num` is inherited from
+// BaseAddress (still @@nullable here — no @@override). Adds the @@nullable evmAddress slot
+// shared by ContractId and AccountId. Does NOT itself carry an @@oneOf — each concrete child
+// tightens the constraint with its own @@oneOf, which is the LSP-safe direction.
+abstraction EvmCapableAddress extends BaseAddress {
+    @@immutable @@nullable evmAddress: EvmAddress             // 20-byte EVM-side address; absent when addressed by Hiero number only
+}
+
 // Identifier of a smart contract. A contract may be addressed either by its numeric Hiero id
 // (shard, realm, num) or by its 20-byte EVM address (e.g. from CREATE / CREATE2 / EIP-1014).
 // HAPI carries this as `ContractID { shardNum, realmNum, oneof { contractNum, evm_address } }`;
 // this type mirrors that wire shape exactly.
 @@oneOf(num, evmAddress)
 @@finalType
-ContractId extends BaseAddress {
-    @@immutable @@nullable num: uint64                        // Hiero contract number; absent when addressed only by EVM address
-    @@immutable @@nullable evmAddress: EvmAddress             // 20-byte EVM-side address; absent when addressed by Hiero contract number
-
-    // Returns the EVM address if this ContractId is in the EVM-form, null otherwise.
-    @@nullable EvmAddress toEvmAddress()
+ContractId extends EvmCapableAddress {
+    // Structurally empty — `num` and `evmAddress` are inherited from EvmCapableAddress.
+    // ContractId's only contribution over its parent is the @@oneOf constraint.
 }
 
 // Parses "shard.realm.num" or "shard.realm.0x<40-hex>" (with optional "-<checksum>" suffix).
@@ -136,18 +194,13 @@ ContractId extends BaseAddress {
 // HAPI carries this as `AccountID { shardNum, realmNum, oneof { accountNum, alias: bytes } }`
 // where the bytes-alias is opaque on the wire: a 20-byte payload is interpreted as an EVM
 // address (HIP-583), a longer payload is interpreted as a serialised public key (HIP-32). V3
-// splits that single HAPI alias slot into two typed fields (`evmAddress` and `alias`) so the
-// type system tells the caller which alias form they hold — no length-checking by callers.
+// splits that single HAPI alias slot into two typed fields (`evmAddress`, inherited from
+// EvmCapableAddress, and `alias`) so the type system tells the caller which alias form they
+// hold — no length-checking by callers.
 @@oneOf(num, evmAddress, alias)
 @@finalType
-AccountId extends BaseAddress {
-    @@immutable @@nullable num: uint64                        // Hiero account number; absent before a HIP-583 auto-create materialises the account
-    @@immutable @@nullable evmAddress: EvmAddress             // 20-byte EVM-address alias (HIP-583); absent when addressed by Hiero number or by a key alias
+AccountId extends EvmCapableAddress {
     @@immutable @@nullable alias: bytes                       // serialised public-key alias (HIP-32); absent when addressed by Hiero number or by EVM address
-
-    // Returns the EVM address if this AccountId is in the EVM-form; null when in numeric form
-    // or key-alias form.
-    @@nullable EvmAddress toEvmAddress()
 }
 
 // Parses "shard.realm.num", "shard.realm.0x<40-hex>", or "shard.realm.<base32 key alias>"

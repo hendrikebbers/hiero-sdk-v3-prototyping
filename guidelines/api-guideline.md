@@ -179,6 +179,69 @@ Employee extends Person {
 }
 ```
 
+#### Narrowing inherited nullability
+
+A child type that inherits a field declared with `@@nullable` MAY re-declare that field
+**without** `@@nullable` to express that, on instances of the child, the field is always
+set. The re-declaration must:
+
+- Carry the `@@override` annotation, so readers see at a glance that the child is
+  *tightening* an inherited contract — not introducing a new field with a colliding name.
+- Keep the field's type identical to the parent's.
+- Keep the field's `@@immutable` discipline identical to the parent's.
+- Drop the `@@nullable` annotation (that is the whole point of the narrowing).
+
+Syntax example:
+
+```
+abstraction Identifier {
+    @@immutable @@nullable num: uint64
+}
+
+@@finalType
+NumericIdentifier extends Identifier {
+    @@immutable @@override num: uint64        // always set on instances of NumericIdentifier
+}
+```
+
+**Why this is LSP-safe (and only this direction).** A consumer holding an `Identifier`
+reference and reading `num` must already handle the nullable case per the parent's
+contract. A `NumericIdentifier` instance whose `num` is always set satisfies every such
+consumer; the null-handling branch simply never fires. Substitution still works in every
+direction it worked before.
+
+The reverse — *widening* in a child, i.e. adding `@@nullable` to a previously non-nullable
+inherited field — would **weaken** the parent's contract: consumers that previously read
+`num` without a null check would crash on the child's null. The meta-language does
+**not** allow widening.
+
+**When to use the narrowing.** Only when the child genuinely represents a class of
+instances on which the field is always present (e.g. a concrete materialised entity vs.
+a parent abstraction that allows the field to be absent). Do not use `@@override` to
+"fix" a nullable field locally without a structural reason — the override should be a
+deliberate statement about a tighter invariant of the child, not a workaround for
+inherited inconvenience.
+
+**Language mappings.** The per-language best-practice guides (`api-best-practices-*.md`)
+spell out the idiomatic mapping. Sketches:
+
+- **TypeScript:** `interface Parent { x?: T }` → `interface Child extends Parent { x: T }` —
+  native narrowing of optional to required.
+- **Kotlin / Swift / Scala:** `open val x: T?` → `override val x: T` — native narrowing.
+- **Java:** covariant getter return type (`Optional<T> getX()` on the parent → `T getX()`
+  on the child). For primitive payloads, the child additionally exposes an unboxed
+  accessor (`long numValue()`), since `Long` is not a Java subtype of `long`.
+- **Rust / Go:** no inheritance; modelled via traits / interfaces plus concrete struct
+  fields. The trait method returns `Option<T>`; the concrete struct stores `T` directly
+  and the trait `impl` returns `Some(self.x)`. Consumers of the concrete type read the
+  field directly.
+- **Python:** `num: Optional[int]` in the parent → `num: int` in the subclass; mypy and
+  pyright accept the narrowing in subclass annotations.
+
+The narrowing rule is currently scoped to nullability only. Narrowing other inherited
+constraints (`@@max`, `@@maxLength`, `@@oneOf`, ...) is **not** part of the meta-language
+today; extending the rule would be a separate, deliberate change.
+
 #### Generic Type parameters
 
 Complex types may declare generic type parameters.
@@ -328,6 +391,11 @@ The following annotations should be used:
 
 - `@@immutable`: Indicates that the field is immutable and cannot be changed after creation.
 - `@@nullable`: Indicates that the field can be null or undefined (language-specific).
+- `@@override`: Indicates that the field re-declares a field inherited from a parent type to
+  tighten the parent's contract. Currently the only supported tightening is narrowing
+  `@@nullable` to non-`@@nullable` — see
+  [Narrowing inherited nullability](#narrowing-inherited-nullability) for the full rule and
+  per-language mappings.
 - `@@default(value)`: Indicates that the field has a default value.
 - `@@min(value)`: Indicates the minimum value for numeric fields. Should be included if the value must be enforced at
   the SDK level.

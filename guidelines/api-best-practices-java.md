@@ -346,6 +346,77 @@ public final class CarFactory implements Factory<Car> {
 2. Keep descriptive names where the meta-language uses them (e.g., `Product` instead of shortening to `T`)
 3. Apply `@NonNull`/`@Nullable` annotations to generic return types and parameters as usual
 
+### Inheritance and Nullability Narrowing
+
+The meta-language allows a child type to narrow an inherited `@@nullable` field to
+non-nullable via the `@@override` annotation
+(see [Narrowing inherited nullability](api-guideline.md#narrowing-inherited-nullability) in
+the meta-language guide). The Java mapping uses **covariant return annotations** on the
+field's getter — Java tolerates a contract narrowing from `@Nullable` to `@NonNull` on an
+overridden return type, while the Java reference type itself stays identical.
+
+```
+// Meta-language
+abstraction Identifier {
+    @@immutable @@nullable num: uint64
+}
+
+@@finalType
+NumericIdentifier extends Identifier {
+    @@immutable @@override num: uint64
+}
+```
+
+```java
+// Java — parent
+public abstract class Identifier {
+
+    @Nullable
+    public abstract Long num();
+}
+
+// Java — child with narrowed @NonNull return
+public final class NumericIdentifier extends Identifier {
+
+    private final long num;
+
+    public NumericIdentifier(final long num) {
+        this.num = num;
+    }
+
+    @Override
+    @NonNull
+    public Long num() {                // contract tightened from @Nullable to @NonNull
+        return num;                    // primitive auto-boxes; never null on this type
+    }
+
+    // Optional Java-only zero-overhead accessor for the primitive value.
+    public long numValue() {
+        return num;
+    }
+}
+```
+
+**Rules:**
+
+1. Keep the **same Java reference type** in the parent and child getter (here `Long`). Java
+   allows narrowing the `@Nullable` / `@NonNull` annotation on the overridden return, but
+   does not allow changing `Long` to `long` — primitives are not subtypes of their boxed
+   counterparts.
+2. Store the value as a primitive (`long`, `int`, ...) in the child when possible —
+   non-null narrowing removes any reason to box at the storage level.
+3. Optionally expose a Java-only unboxed accessor (e.g. `numValue()`) on the child for
+   ergonomic primitive access. This is a Java convenience, not required by the spec.
+4. Always annotate the child's getter with `@Override` so the narrowing is explicit at the
+   override site.
+5. When the parent is an abstract class, the child may still be declared as a `record` if
+   all of its own fields are `@@immutable`; the narrowed getter is then implemented in the
+   record body.
+
+The narrowing rule is currently scoped to nullability only — Java code should not invent
+narrowings of `@@max`, `@@maxLength`, or other inherited constraints, since those are not
+part of the meta-language today.
+
 ## Enumerations
 
 Enumerations defined in the meta-language map directly to Java `enum` types. Enum values use `UPPER_SNAKE_CASE` as

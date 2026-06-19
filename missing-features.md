@@ -239,26 +239,35 @@ The address hierarchy is **now landed** in
 HAPI entity id is `(shard, realm, X)` and only the selector `X` varies:
 for tokens / topics / files / schedules it is a single `num`; for
 contracts it is `num` xor a 20-byte EVM address; for accounts it is `num`
-xor an EVM address xor a HIP-32 key alias. That observation lets us
-factor `(shard, realm, checksum)` into a shared abstract base
-(`BaseAddress`) and let each concrete identifier add its own selector
-shape as a sibling — strictly Liskov-clean, with no meta-language
-extension required.
+xor an EVM address xor a HIP-32 key alias. That observation drove the
+three-level hierarchy: `BaseAddress` factors `(shard, realm, checksum)`;
+`EvmCapableAddress` adds the two `@@nullable` slots shared by accounts
+and contracts; the concrete `ContractId` / `AccountId` add only their
+own `@@oneOf` constraint (and `AccountId` adds the HIP-32 alias slot).
+Strictly Liskov-clean, no meta-language extension required.
 
 #### Concrete identifier types landed in `base/ledger.md`
 
 | Type | Shape | Used for |
 | --- | --- | --- |
-| `BaseAddress` (abstract) | `shard`, `realm`, `checksum` + common methods | parent of every concrete address kind below |
-| `Address` extends `BaseAddress` | adds `num: uint64` (always set) | tokens, topics, files, schedules — the typed identifier already referenced throughout the spec |
-| `ContractId` extends `BaseAddress` | `@@oneOf(num, evmAddress)`; mirrors HAPI `ContractID` exactly | smart contracts |
-| `AccountId` extends `BaseAddress` | `@@oneOf(num, evmAddress, alias)`; splits HAPI's opaque `AccountID.alias: bytes` into typed `evmAddress: EvmAddress` (HIP-583) and `alias: bytes` (HIP-32 key alias) | accounts |
-| `EvmAddress` | 20-byte raw value, NOT a `(shard, realm, num)` tuple | EVM-side identifiers; selector slot inside `ContractId` / `AccountId`; stand-alone return type wherever an EVM address appears on its own |
+| `BaseAddress` (abstract) | `shard`, `realm`, `checksum`, `@@nullable num: uint64` + common methods (`toString`, `validateChecksum`, ...) | parent of every concrete address kind below; the `num` slot is `@@nullable` here because EVM-only `ContractId` / `AccountId` may not carry one |
+| `Address` extends `BaseAddress` | `@@override num: uint64` — **narrows** the inherited nullable `num` to non-null | tokens, topics, files, schedules — the typed identifier already referenced throughout the spec |
+| `EvmCapableAddress` (abstract) extends `BaseAddress` | adds `@@nullable evmAddress: EvmAddress`; `num` is inherited as `@@nullable`; no `@@oneOf` of its own | parent of every address that can be EVM-addressed |
+| `ContractId` extends `EvmCapableAddress` | structurally empty body; only adds `@@oneOf(num, evmAddress)` — mirrors HAPI `ContractID` exactly | smart contracts |
+| `AccountId` extends `EvmCapableAddress` | adds `@@nullable alias: bytes` (HIP-32 key alias) + `@@oneOf(num, evmAddress, alias)`; splits HAPI's opaque `AccountID.alias: bytes` into typed `evmAddress` (HIP-583, inherited) and `alias` (HIP-32) so the type system says which form is held | accounts |
+| `EvmAddress` | 20-byte raw value, NOT a `(shard, realm, num)` tuple | EVM-side identifiers; the `evmAddress` slot inside `EvmCapableAddress`; stand-alone return type wherever a flat EVM address appears on its own |
 
-`AccountId` and `ContractId` are **siblings**, not in a vertical chain
-(no `EvmCapableAddress` intermediate). The `(num, evmAddress)` slot pair
-is repeated once in each — a trivially small price for keeping the
-hierarchy LSP-clean and the meta-language unchanged.
+LSP-cleanliness comes from never weakening a parent's contract — every
+child only **tightens**: `Address` narrows the inherited `@@nullable num`
+to non-null via `@@override` (see *Narrowing inherited nullability* in
+[`guidelines/api-guideline.md`](guidelines/api-guideline.md)); `ContractId`
+and `AccountId` add their own `@@oneOf` constraints on top of an
+`EvmCapableAddress` that carries none. Tightening is the safe direction;
+no parent invariant is ever relaxed. The meta-language did acquire one
+small addition (the `@@override` annotation + nullability-narrowing rule)
+to support `Address`'s `num`-narrowing, with per-language mappings in
+`api-best-practices-java.md`, `api-best-practices-rust.md`, and
+`api-best-practices-js.md`.
 
 `DelegateContractId` is **not** an identifier type. It is a `Key`
 sum-type variant that wraps a `ContractId` with the additional semantic

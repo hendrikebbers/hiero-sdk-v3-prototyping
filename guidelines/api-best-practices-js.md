@@ -551,3 +551,86 @@ class Team {
     }
 }
 ```
+
+## Inheritance and Nullability Narrowing
+
+The meta-language allows a child type to narrow an inherited `@@nullable` field to
+non-nullable via the `@@override` annotation
+(see [Narrowing inherited nullability](api-guideline.md#narrowing-inherited-nullability) in
+the meta-language guide). JavaScript's mapping is straightforward — the child's getter
+documents (via JSDoc) a non-null return, and the constructor / setter validates the value
+with `requireNonNullX(...)` so the field never holds `null` on instances of the child.
+
+```
+// Meta-language
+abstraction Identifier {
+    @@immutable @@nullable num: uint64
+}
+
+@@finalType
+NumericIdentifier extends Identifier {
+    @@immutable @@override num: uint64
+}
+```
+
+```javascript
+// Parent — getter contract allows null.
+class Identifier {
+    #num;
+
+    /**
+     * @param {?bigint} num - The numeric id (may be null).
+     */
+    constructor(num) {
+        this.#num = num !== undefined ? num : null;
+        requireDefined(this.#num, 'num');
+    }
+
+    /**
+     * @returns {?bigint} The numeric id, or null if not assigned.
+     */
+    getNum() {
+        return this.#num;
+    }
+}
+
+// Child — narrowed: num is guaranteed non-null on every instance.
+class NumericIdentifier extends Identifier {
+
+    /**
+     * @param {bigint} num - The numeric id (required, must not be null).
+     */
+    constructor(num) {
+        super(requireNonNullBigInt(num, 'num'));
+        Object.freeze(this);
+    }
+
+    /**
+     * @returns {bigint} The numeric id (never null on this type).
+     * @override
+     */
+    getNum() {
+        // Always returns a non-null value because the constructor enforced it.
+        return super.getNum();
+    }
+}
+```
+
+**Rules:**
+
+1. JSDoc the child's getter return as the non-null variant (`{bigint}` instead of
+   `{?bigint}`) and tag it `@override` so the narrowing is explicit in the source.
+2. Enforce the narrowing in the child's constructor with `requireNonNullX(...)`. The
+   parent's constructor still has to accept the value (it cannot know about the child's
+   stricter contract), but the child rejects `null` at its own boundary before delegating
+   to `super(...)`.
+3. The underlying storage stays in the parent's private field — the child does not
+   shadow-store the value. The narrowing is a **contract** on the child's getter, not a
+   re-declaration of storage.
+4. If the parent provides a setter, the child should either override it to apply the same
+   non-null validation, or — more idiomatically — make the parent's setter
+   `@@immutable`-only and construct the narrowed value once.
+
+The narrowing rule is currently scoped to nullability only — JavaScript code should not
+invent narrowings of other meta-language constraints, since those are not part of the
+meta-language today.
