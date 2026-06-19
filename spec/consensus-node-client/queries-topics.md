@@ -31,7 +31,7 @@ SHA-384 chain over all `TopicMessageSubmit`s applied to the topic so far.
 
 ```
 namespace consensusnode.queries.topics
-requires {Address} from ledger
+requires {Address, AccountId} from ledger
 requires {PublicKey} from keys
 requires {PaidQuery} from consensusnode.queries
 
@@ -45,7 +45,7 @@ type TopicInfo {
     @@immutable @@nullable adminKey: PublicKey                // unset → topic is immutable (no update / delete)
     @@immutable @@nullable submitKey: PublicKey               // unset → topic is public (any account may submit)
     @@immutable @@nullable autoRenewPeriod: seconds
-    @@immutable @@nullable autoRenewAccount: Address          // pays auto-renewal; if unset, the topic itself pays
+    @@immutable @@nullable autoRenewAccount: AccountId        // pays auto-renewal; if unset, the topic itself pays
 }
 
 // Paid query for the metadata snapshot of a topic. Topic *messages* are not returned by

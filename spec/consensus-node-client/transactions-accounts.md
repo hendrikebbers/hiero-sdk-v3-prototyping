@@ -61,7 +61,7 @@ approve with `approveAll = false` for the same `(owner, spender, tokenId)`.
 
 ```
 namespace consensusnode.transactions.accounts
-requires {Address} from ledger
+requires {Address, AccountId} from ledger
 requires {PublicKey} from keys
 requires {NativeToken} from nativeToken
 requires {Receipt, Transaction} from consensusnode.transactions
@@ -74,7 +74,7 @@ AccountCreateTransaction extends Transaction<AccountCreateReceipt> {
     @@immutable @@default(false) receiverSignatureRequired: bool
     @@immutable @@nullable maxAutomaticTokenAssociations: int32
     @@immutable @@nullable autoRenewPeriod: seconds
-    @@immutable @@nullable stakedAccountId: Address
+    @@immutable @@nullable stakedAccountId: AccountId
     @@immutable @@nullable stakedNodeId: int64
     @@immutable @@default(false) declineStakingReward: bool
     @@immutable @@nullable alias: bytes
@@ -82,19 +82,19 @@ AccountCreateTransaction extends Transaction<AccountCreateReceipt> {
 
 @@finalType
 AccountCreateReceipt extends Receipt {
-    @@immutable accountId: Address
+    @@immutable accountId: AccountId
 }
 
 @@finalType
 AccountUpdateTransaction extends Transaction<AccountUpdateReceipt> {
-    @@immutable accountId: Address                              // the account that is being updated
+    @@immutable accountId: AccountId                            // the account that is being updated
     @@immutable @@nullable key: PublicKey                          // the new key (requires signatures with both old and new keys)
     @@immutable @@nullable accountMemo: string
     @@immutable @@nullable receiverSignatureRequired: bool
     @@immutable @@nullable maxAutomaticTokenAssociations: int32
     @@immutable @@nullable autoRenewPeriod: seconds
     @@immutable @@nullable expirationTime: zonedDateTime
-    @@immutable @@nullable stakedAccountId: Address              // mutually exclusive with stakedNodeId
+    @@immutable @@nullable stakedAccountId: AccountId            // mutually exclusive with stakedNodeId
     @@immutable @@nullable stakedNodeId: int64                          // mutually exclusive with stakedAccountId
     @@immutable @@nullable declineStakingReward: bool
 }
@@ -105,8 +105,8 @@ AccountUpdateReceipt extends Receipt {
 
 @@finalType
 AccountDeleteTransaction extends Transaction<AccountDeleteReceipt> {
-    @@immutable accountId: Address                              // the account that is being deleted (must sign)
-    @@immutable transferAccountId: Address                       // the account that receives the remaining hbar balance
+    @@immutable accountId: AccountId                            // the account that is being deleted (must sign)
+    @@immutable transferAccountId: AccountId                    // the account that receives the remaining hbar balance
 }
 
 @@finalType
@@ -116,7 +116,7 @@ AccountDeleteReceipt extends Receipt {
 // One leg of an HBAR transfer. The consensus node requires the sum of all `amount` values in
 // `TransferTransaction.hbarTransfers` to equal zero (debits balance credits exactly).
 type HbarTransfer {
-    @@immutable accountId: Address                  // the account being debited or credited
+    @@immutable accountId: AccountId                // the account being debited or credited
     @@immutable amount: NativeToken<ANY, ANY>       // signed amount: negative = debit, positive = credit
     @@immutable @@default(false) approved: bool     // when true, the debit is drawn from an allowance granted to the transaction payer; the owner (accountId) need not sign
 }
@@ -125,7 +125,7 @@ type HbarTransfer {
 // `TransferTransaction.tokenTransfers` must equal zero.
 type TokenTransfer {
     @@immutable tokenId: Address                    // the fungible token being moved
-    @@immutable accountId: Address                  // the account being debited or credited
+    @@immutable accountId: AccountId                // the account being debited or credited
     @@immutable amount: int64                       // signed amount in the token's smallest unit: negative = debit, positive = credit
     @@immutable @@nullable expectedDecimals: int32  // optional protocol-side decimals check; if set and the token's actual decimals differ, the network rejects the transaction
     @@immutable @@default(false) approved: bool     // when true, the debit is drawn from an allowance granted to the transaction payer; the owner (accountId) need not sign
@@ -136,8 +136,8 @@ type TokenTransfer {
 type NftTransfer {
     @@immutable tokenId: Address                    // the NFT collection
     @@immutable serial: int64                       // the serial number being transferred
-    @@immutable sender: Address                     // current owner
-    @@immutable receiver: Address                   // new owner
+    @@immutable sender: AccountId                   // current owner
+    @@immutable receiver: AccountId                 // new owner
     @@immutable @@default(false) approved: bool     // when true, the transfer is drawn from an NFT allowance granted to the transaction payer; the sender need not sign
 }
 
@@ -158,8 +158,8 @@ TransferReceipt extends Receipt {
 // Allowance for HBAR. `amount` is absolute, not delta: re-approving overwrites the prior
 // value; an amount of zero revokes the allowance.
 type HbarAllowance {
-    @@immutable ownerAccountId: Address             // the account granting the allowance (must sign the transaction)
-    @@immutable spenderAccountId: Address           // the account that may spend on behalf of the owner
+    @@immutable ownerAccountId: AccountId           // the account granting the allowance (must sign the transaction)
+    @@immutable spenderAccountId: AccountId         // the account that may spend on behalf of the owner
     @@immutable amount: NativeToken<ANY, ANY>       // upper bound the spender may transfer; 0 = revoke
 }
 
@@ -167,8 +167,8 @@ type HbarAllowance {
 // prior value; an amount of zero revokes the allowance.
 type TokenAllowance {
     @@immutable tokenId: Address                    // the fungible token the allowance applies to
-    @@immutable ownerAccountId: Address             // the account granting the allowance (must sign the transaction)
-    @@immutable spenderAccountId: Address           // the account that may spend on behalf of the owner
+    @@immutable ownerAccountId: AccountId           // the account granting the allowance (must sign the transaction)
+    @@immutable spenderAccountId: AccountId         // the account that may spend on behalf of the owner
     @@immutable amount: int64                       // upper bound in the token's smallest unit; 0 = revoke
 }
 
@@ -186,11 +186,11 @@ type TokenAllowance {
 @@oneOf(serials, approveAll)
 type NftAllowance {
     @@immutable tokenId: Address
-    @@immutable ownerAccountId: Address
-    @@immutable spenderAccountId: Address
+    @@immutable ownerAccountId: AccountId
+    @@immutable spenderAccountId: AccountId
     @@immutable @@nullable serials: list<int64>
     @@immutable @@nullable approveAll: bool
-    @@immutable @@nullable delegatingSpender: Address
+    @@immutable @@nullable delegatingSpender: AccountId
 }
 
 // Grants delegated-spend rights from one or more owners. Per-leg semantics:
@@ -215,7 +215,7 @@ AccountAllowanceApproveReceipt extends Receipt {
 // spender at a time, so the owner does not need to name the spender to revoke.
 type NftAllowanceDeletion {
     @@immutable tokenId: Address                    // the NFT collection
-    @@immutable ownerAccountId: Address             // the account revoking the allowance (must sign the transaction)
+    @@immutable ownerAccountId: AccountId           // the account revoking the allowance (must sign the transaction)
     @@immutable serials: list<int64>                // serials whose allowance is revoked
 }
 
@@ -241,7 +241,7 @@ debited account in one step.
 
 ```
 HieroClient client = ...;     // operator = alice
-Address bob = ...;
+AccountId bob = ...;
 
 Response<TransferReceipt> response = new TransferTransaction()
     .hbarTransfers([
@@ -263,7 +263,7 @@ payload.
 ```
 HieroClient client = ...;     // operator is not Alice
 Account alice = ...;          // separate account that holds the funds
-Address bob = ...;
+AccountId bob = ...;
 
 PackedTransaction<...> packed = new TransferTransaction()
     .hbarTransfers([

@@ -115,7 +115,7 @@ right now (`supplyKey`, `kycKey`, `freezeKey`, `wipeKey`, `pauseKey`, `feeSchedu
 
 ```
 namespace consensusnode.transactions.tokens
-requires {Address} from ledger
+requires {Address, AccountId} from ledger
 requires {PublicKey} from keys
 requires {TokenType, TokenSupplyType} from token
 requires {Receipt, Transaction} from consensusnode.transactions
@@ -131,7 +131,7 @@ TokenCreateTransaction extends Transaction<TokenCreateReceipt> {
     @@immutable tokenType: TokenType                                // FUNGIBLE_COMMON | NON_FUNGIBLE_UNIQUE; cannot be changed later
     @@immutable @@default(0) decimals: int32                        // FUNGIBLE_COMMON only: precision of the smallest indivisible unit (e.g. 6 for USDC); MUST be 0 for NON_FUNGIBLE_UNIQUE
     @@immutable @@default(0) initialSupply: int64                   // FUNGIBLE_COMMON only: amount minted to the treasury at create (in smallest unit); MUST be 0 for NON_FUNGIBLE_UNIQUE
-    @@immutable treasuryAccountId: Address                          // account receiving `initialSupply` and all subsequent mints; MUST sign the create transaction
+    @@immutable treasuryAccountId: AccountId                        // account receiving `initialSupply` and all subsequent mints; MUST sign the create transaction
     @@immutable @@default(INFINITE) supplyType: TokenSupplyType     // INFINITE | FINITE; cannot be changed later
     @@immutable @@nullable @@min(1) maxSupply: int64                // FINITE only: protocol-enforced ceiling on totalSupply; unset (and only valid) when supplyType is INFINITE
     @@immutable @@default(false) freezeDefault: bool                // when true, newly associated accounts start in the FROZEN state (require an explicit TokenUnfreeze before they can move balances); requires freezeKey to be set
@@ -139,7 +139,7 @@ TokenCreateTransaction extends Transaction<TokenCreateReceipt> {
     @@immutable @@default([]) metadata: bytes                       // opaque token-level metadata (e.g. IPFS CID, HTTPS URL, JSON manifest)
     @@immutable @@nullable expirationTime: zonedDateTime            // when the token expires; SDK default applies when unset
     @@immutable @@nullable autoRenewPeriod: seconds                 // renewal window applied when expiration approaches; protocol default applies when unset
-    @@immutable @@nullable autoRenewAccount: Address                // account paying for auto-renewal; MUST sign the create transaction if set and not equal to the treasury / payer
+    @@immutable @@nullable autoRenewAccount: AccountId              // account paying for auto-renewal; MUST sign the create transaction if set and not equal to the treasury / payer
 
     // Optional key fields — see "Token keys" in the description above for what each one grants.
     // A key NOT set at create time CANNOT be added by TokenUpdate.
@@ -171,12 +171,12 @@ TokenUpdateTransaction extends Transaction<TokenUpdateReceipt> {
     @@immutable tokenId: Address                                    // the token being updated
     @@immutable @@nullable @@maxLength(100) name: string
     @@immutable @@nullable @@maxLength(100) symbol: string
-    @@immutable @@nullable treasuryAccountId: Address               // when set, replaces the treasury; both the OLD and the NEW treasury MUST sign
+    @@immutable @@nullable treasuryAccountId: AccountId             // when set, replaces the treasury; both the OLD and the NEW treasury MUST sign
     @@immutable @@nullable @@maxLength(100) tokenMemo: string
     @@immutable @@nullable metadata: bytes                          // when set, replaces the token-level metadata
     @@immutable @@nullable expirationTime: zonedDateTime
     @@immutable @@nullable autoRenewPeriod: seconds
-    @@immutable @@nullable autoRenewAccount: Address                // when set, replaces the auto-renew account; the new account MUST also sign
+    @@immutable @@nullable autoRenewAccount: AccountId              // when set, replaces the auto-renew account; the new account MUST also sign
 
     // Key rotations — each requires the new key to also sign (anti-spoofing). A key that was
     // unset at create cannot be set here.
@@ -215,7 +215,7 @@ TokenDeleteReceipt extends Receipt {
 // auto-association budget.
 @@finalType
 TokenAssociateTransaction extends Transaction<TokenAssociateReceipt> {
-    @@immutable accountId: Address                                  // the account opting in to hold the listed tokens (MUST sign)
+    @@immutable accountId: AccountId                                // the account opting in to hold the listed tokens (MUST sign)
     @@immutable @@maxLength(100) tokens: set<Address>               // tokens to associate; duplicates are protocol-rejected (TOKEN_ID_REPEATED_IN_TOKEN_LIST) and order is irrelevant — hence a set, not a list
 }
 
@@ -230,7 +230,7 @@ TokenAssociateReceipt extends Receipt {
 // account if necessary.
 @@finalType
 TokenDissociateTransaction extends Transaction<TokenDissociateReceipt> {
-    @@immutable accountId: Address                                  // the account opting out (MUST sign)
+    @@immutable accountId: AccountId                                // the account opting out (MUST sign)
     @@immutable @@maxLength(100) tokens: set<Address>               // tokens to dissociate; same set semantics as TokenAssociateTransaction.tokens
 }
 

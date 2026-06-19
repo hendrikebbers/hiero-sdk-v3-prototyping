@@ -101,7 +101,7 @@ deterministic ids for testing must be modelled by a different mechanism if neede
 
 ```
 namespace consensusnode.transactions
-requires {Address, TransactionId} from ledger
+requires {AccountId, TransactionId} from ledger
 requires {NativeToken, ExchangeRate} from nativeToken
 requires {Account, HieroClient, NodeSignature, Submittable, TransactionSigner} from consensusnode.client
 
@@ -123,7 +123,7 @@ enum BasicTransactionStatus extends TransactionStatus {
 // A serialized TransactionBody for one target consensus node — the exact bytes an external signer
 // must sign. Bytes differ per node because each body carries the target node's nodeAccountID.
 type NodeBody {
-    @@immutable node: Address
+    @@immutable node: AccountId
     @@immutable bytes: bytes
 }
 
@@ -133,13 +133,13 @@ abstraction Transaction<$$Receipt extends Receipt> {
   @@nullable validDuration: seconds
   @@nullable memo: string
   
-  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> pack(payer: Account, nodes: list<Address>)  
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> pack(payer: Account, nodes: list<AccountId>)  
     
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> signWithOperator(client: HieroClient)
   
-  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payer: Account, nodes: list<Address>)
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payer: Account, nodes: list<AccountId>)
   
-  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payerId: Address, signer: TransactionSigner, nodes: list<Address>)
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payerId: AccountId, signer: TransactionSigner, nodes: list<AccountId>)
   
   @@async Response<$$Receipt> signWithOperatorAndSubmit(client: HieroClient)
   
@@ -220,7 +220,7 @@ Response<AccountCreateReceipt> response = new AccountCreateTransaction()
     .signWithOperatorAndSubmit(client);
 
 AccountCreateReceipt receipt = response.queryReceipt();
-Address newAccountId = receipt.accountId;
+AccountId newAccountId = receipt.accountId;
 ```
 
 ### 2. Distinct payer, single signature
@@ -231,7 +231,7 @@ explicitly.
 ```
 HieroClient client = ...;
 Account payer = ...;            // not necessarily the operator
-list<Address> nodes = client.ledger.networkSetting().getConsensusNodes()
+list<AccountId> nodes = client.ledger.networkSetting().getConsensusNodes()
                             .map(n -> n.address);
 
 PackedTransaction<...> packed = new AccountCreateTransaction()
@@ -250,7 +250,7 @@ adds the operation signature. The sponsor signs after the fact on the resulting
 ```
 Account sponsor = ...;
 TransactionSigner userSigner = ...;     // wraps HSM / Ledger / etc.
-list<Address> nodes = ...;
+list<AccountId> nodes = ...;
 
 PackedTransaction<...> packed = new TransferTransaction()
     .addHbarTransfer(...)

@@ -47,7 +47,7 @@ The council signer is configured at the consensus-node level and reaches the SDK
 The DAB transactions identify a node by its sequential **`nodeId: int64`** — the same
 identifier the consensus layer uses internally for gossip and stake distribution.
 [`base/ledger.md`](../base/ledger.md) separately defines a `ConsensusNode` type with an
-**`account: Address`** field. Both refer to the same node, from two different angles:
+**`account: AccountId`** field. Both refer to the same node, from two different angles:
 
 - `account` is the node's **fee account** (where the per-transaction fee share is paid).
   Clients select a node for transaction routing by its `account`; the value may change
@@ -58,7 +58,7 @@ identifier the consensus layer uses internally for gossip and stake distribution
 
 The same dichotomy already appears in
 [`transactions-accounts.md`](../consensus-node-client/transactions-accounts.md), where
-`stakedAccountId: Address` and `stakedNodeId: int64` are modelled as mutually exclusive
+`stakedAccountId: AccountId` and `stakedNodeId: int64` are modelled as mutually exclusive
 alternatives. The DAB transactions take only `nodeId`, because HAPI's address-book service
 addresses nodes purely by their stable identifier (account rotation must not break a
 pending `NodeUpdate`). `ConsensusNode` does **not** currently carry `nodeId` — see
@@ -84,7 +84,7 @@ fails with `INVALID_ENDPOINT`.
 
 ```
 namespace consensusnode.admin.nodes
-requires {Address, IpAddress} from ledger
+requires {AccountId, IpAddress} from ledger
 requires {PublicKey} from keys
 requires {Receipt, Transaction} from consensusnode.transactions
 
@@ -101,7 +101,7 @@ type ServiceEndpoint {
 // fields are required; the network has no defaults for any of them.
 @@finalType
 NodeCreateTransaction extends Transaction<NodeCreateReceipt> {
-    @@immutable accountId: Address                                       // account that receives the node's staking rewards
+    @@immutable accountId: AccountId                                     // account that receives the node's staking rewards
     @@immutable @@nullable description: string                           // free-form description (max 100 chars)
     @@immutable @@minLength(1) gossipEndpoints: list<ServiceEndpoint>    // inter-node hashgraph gossip endpoints
     @@immutable @@minLength(1) serviceEndpoints: list<ServiceEndpoint>   // public gRPC endpoints for client transactions
@@ -123,7 +123,7 @@ NodeCreateReceipt extends Receipt {
 @@finalType
 NodeUpdateTransaction extends Transaction<NodeUpdateReceipt> {
     @@immutable nodeId: int64
-    @@immutable @@nullable accountId: Address                            // when set, the new account's key must also sign
+    @@immutable @@nullable accountId: AccountId                          // when set, the new account's key must also sign
     @@immutable @@nullable description: string
     @@immutable @@nullable gossipEndpoints: list<ServiceEndpoint>        // replaces the entire list when set
     @@immutable @@nullable serviceEndpoints: list<ServiceEndpoint>       // replaces the entire list when set
@@ -215,7 +215,7 @@ new NodeDeleteTransaction()
 ## Questions & Comments
 
 - **`ConsensusNode` in [`base/ledger.md`](../base/ledger.md) does not carry `nodeId`
-  today.** It models the routing / fee-account view (`ip`, `port`, `account: Address`),
+  today.** It models the routing / fee-account view (`ip`, `port`, `account: AccountId`),
   which predates HIP-869 and is sufficient for clients that only need to *talk to* a node.
   The DAB transactions on the other hand need the *stable* identifier that survives an
   account rotation, hence `int64 nodeId`. Resolving the asymmetry on the read side

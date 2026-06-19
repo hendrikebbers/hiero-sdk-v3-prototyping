@@ -8,7 +8,7 @@
 ```
 namespace enterprise.service.topic
 requires {Page} from common
-requires {Address} from ledger
+requires {Address, AccountId} from ledger
 requires {PublicKey} from keys
 requires {Session} from enterprise.service
 
@@ -25,7 +25,7 @@ Topic {
 TopicMessage {
     @@immutable consensusTimestamp: zonedDateTime
     @@immutable message: string
-    @@immutable payerAccountId: Address
+    @@immutable payerAccountId: AccountId
     @@immutable sequenceNumber: int64
     @@immutable topicId: Address
 }

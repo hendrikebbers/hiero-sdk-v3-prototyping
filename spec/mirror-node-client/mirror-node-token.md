@@ -6,14 +6,14 @@
 
 ```
 namespace mirrornode.token
-requires {Address, MirrorNode} from ledger
+requires {Address, AccountId, MirrorNode} from ledger
 requires {FixedFee} from mirrornode.common
 requires {Page} from common
 requires {TokenType, TokenSupplyType} from token
 
 @@finalType
 Balance {
-    @@immutable accountId: Address
+    @@immutable accountId: AccountId
     @@immutable balance: int64
     @@immutable decimals: int64
 }
@@ -23,7 +23,7 @@ RoyaltyFee {
     @@immutable numeratorAmount: int64
     @@immutable denominatorAmount: int64
     @@immutable fallbackFeeAmount: int64
-    @@immutable @@nullable collectorAccountId: Address
+    @@immutable @@nullable collectorAccountId: AccountId
     @@immutable @@nullable denominatingTokenId: Address
 }
 
@@ -31,7 +31,7 @@ RoyaltyFee {
 FractionalFee {
     @@immutable numeratorAmount: int64
     @@immutable denominatorAmount: int64
-    @@immutable @@nullable collectorAccountId: Address
+    @@immutable @@nullable collectorAccountId: AccountId
     @@immutable @@nullable denominatingTokenId: Address
 }
 
@@ -59,7 +59,7 @@ TokenInfo {
     @@immutable initialSupply: int256
     @@immutable totalSupply: int256
     @@immutable maxSupply: int256
-    @@immutable treasuryAccountId: Address
+    @@immutable treasuryAccountId: AccountId
     @@immutable deleted: bool
     @@immutable customFees: CustomFee
 }
@@ -77,7 +77,7 @@ Token {
 
 abstraction TokenRepository {
     @@async @@throws(mirror-node-error)
-    Page<Token> findByAccount(accountId: Address)
+    Page<Token> findByAccount(accountId: AccountId)
 
     @@async @@throws(mirror-node-error)
     @@nullable TokenInfo findById(tokenId: Address)
@@ -86,7 +86,7 @@ abstraction TokenRepository {
     Page<Balance> getBalances(tokenId: Address)
 
     @@async @@throws(mirror-node-error)
-    Page<Balance> getBalancesForAccount(tokenId: Address, accountId: Address)
+    Page<Balance> getBalancesForAccount(tokenId: Address, accountId: AccountId)
 }
 
 @@static TokenRepository createRepository(mirrorNode: MirrorNode)

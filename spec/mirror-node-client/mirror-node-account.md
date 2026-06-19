@@ -6,19 +6,19 @@
 
 ```
 namespace mirrornode.account
-requires {Address, MirrorNode} from ledger
+requires {AccountId, EvmAddress, MirrorNode} from ledger
 requires {PublicKey} from keys
 requires {Page} from common
 
 @@finalType
 AccountInfo {
-    @@immutable accountId: Address
-    @@immutable @@nullable evmAddress: string
+    @@immutable accountId: AccountId
+    @@immutable @@nullable evmAddress: EvmAddress
     @@immutable balance: int64                                       // hbar balance in tinybars
     @@immutable @@nullable balanceTimestamp: zonedDateTime           // timestamp of the reported balance
     @@immutable ethereumNonce: int64
     @@immutable pendingReward: int64                                 // tinybars receivable in the next staking payout
-    @@immutable @@nullable alias: string                             // RFC4648 base32-encoded account alias
+    @@immutable @@nullable alias: bytes                              // HIP-32 public-key alias (serialised protobuf Key bytes)
     @@immutable @@nullable key: PublicKey
     @@immutable @@nullable accountMemo: string
     @@immutable @@nullable createdTimestamp: zonedDateTime
@@ -28,14 +28,14 @@ AccountInfo {
     @@immutable @@nullable receiverSignatureRequired: bool
     @@immutable @@default(false) declineReward: bool
     @@immutable @@default(false) deleted: bool
-    @@immutable @@nullable stakedAccountId: Address           // mutually exclusive with stakedNodeId
+    @@immutable @@nullable stakedAccountId: AccountId                // mutually exclusive with stakedNodeId
     @@immutable @@nullable stakedNodeId: int64                       // mutually exclusive with stakedAccountId
     @@immutable @@nullable stakePeriodStart: zonedDateTime
 }
 
 abstraction AccountRepository {
     @@async @@throws(mirror-node-error)
-    @@nullable AccountInfo findById(accountId: Address)
+    @@nullable AccountInfo findById(accountId: AccountId)
 
     // Lists account entities known to the mirror node.
     // Maps to GET /api/v1/accounts.

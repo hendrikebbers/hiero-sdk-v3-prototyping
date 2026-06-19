@@ -40,7 +40,7 @@ flows.
 
 ```
 namespace consensusnode.admin.system
-requires {Address} from ledger
+requires {Address, ContractId} from ledger
 requires {Receipt, Transaction} from consensusnode.transactions
 
 // Marks a file or contract as deleted by privileged council action. Exactly one of fileId /
@@ -51,7 +51,7 @@ requires {Receipt, Transaction} from consensusnode.transactions
 @@oneOf(fileId, contractId)
 SystemDeleteTransaction extends Transaction<SystemDeleteReceipt> {
     @@immutable @@nullable fileId: Address
-    @@immutable @@nullable contractId: Address
+    @@immutable @@nullable contractId: ContractId
     @@immutable @@nullable expirationTime: zonedDateTime  // when a system-deleted file becomes permanently unrecoverable; required when fileId is set, ignored when contractId is set
 }
 
@@ -66,7 +66,7 @@ SystemDeleteReceipt extends Receipt {
 @@oneOf(fileId, contractId)
 SystemUndeleteTransaction extends Transaction<SystemUndeleteReceipt> {
     @@immutable @@nullable fileId: Address
-    @@immutable @@nullable contractId: Address
+    @@immutable @@nullable contractId: ContractId
 }
 
 @@finalType

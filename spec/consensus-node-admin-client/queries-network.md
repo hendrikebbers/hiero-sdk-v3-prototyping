@@ -46,7 +46,7 @@ type avoids a duplicate read/write shape that would have to evolve in lockstep.
 
 ```
 namespace consensusnode.admin.network
-requires {Address} from ledger
+requires {AccountId} from ledger
 requires {Query, PaidQuery} from consensusnode.queries
 requires {ServiceEndpoint} from consensusnode.admin.nodes
 
@@ -83,7 +83,7 @@ NetworkVersionInfoQuery extends Query<NetworkVersionInfo> {
 // write-side `NodeCreateTransaction` shape but is the read-only return form.
 type NodeAddress {
     @@immutable nodeId: int64                                // stable HIP-869 identifier; survives account / endpoint rotation
-    @@immutable accountId: Address                           // fee account that receives this node's per-transaction share
+    @@immutable accountId: AccountId                         // fee account that receives this node's per-transaction share
     @@immutable @@default([]) serviceEndpoints: list<ServiceEndpoint>   // public gRPC endpoints (clients submit transactions here)
     @@immutable @@nullable description: string               // free-form description set at NodeCreate (max 100 chars)
     @@immutable gossipCaCertificate: bytes                   // X.509 DER bytes of the certificate that terminates mutual TLS for gossip

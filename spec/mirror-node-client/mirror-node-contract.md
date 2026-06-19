@@ -7,27 +7,27 @@
 ```
 namespace mirrornode.contract
 
-requires {Address, MirrorNode} from ledger
+requires {AccountId, ContractId, EvmAddress, MirrorNode} from ledger
 requires {PublicKey} from keys
 requires {Page} from common
 
 @@finalType
 Contract {
-    @@immutable contractId: Address
+    @@immutable contractId: ContractId
     @@immutable @@nullable adminKey: PublicKey
-    @@immutable @@nullable autoRenewAccount: Address
+    @@immutable @@nullable autoRenewAccount: AccountId
     @@immutable autoRenewPeriod: seconds
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
     @@immutable @@nullable expirationTimestamp: zonedDateTime
-    @@immutable @@nullable fileId: string
-    @@immutable @@nullable evmAddress: string
+    @@immutable @@nullable fileId: string                              // TODO: should be typed `Address` once the string-typed entity-id fields in this file are cleaned up (separate work)
+    @@immutable @@nullable evmAddress: EvmAddress
     @@immutable @@nullable memo: string
     @@immutable @@nullable maxAutomaticTokenAssociations: int32
     @@immutable @@nullable nonce: int64
-    @@immutable @@nullable obtainerId: string
+    @@immutable @@nullable obtainerId: string                          // TODO: should be typed `AccountId` once the string-typed entity-id fields are cleaned up
     @@immutable permanentRemoval: bool
-    @@immutable @@nullable proxyAccountId: string
+    @@immutable @@nullable proxyAccountId: string                      // TODO: should be typed `AccountId` once the string-typed entity-id fields are cleaned up
     @@immutable fromTimestamp: zonedDateTime
     @@immutable toTimestamp: zonedDateTime
     @@immutable @@nullable bytecode: string
@@ -39,7 +39,7 @@ ContractRepository {
     Page<Contract> findAll()
 
     @@async @@throws(mirror-node-error)
-    @@nullable Contract findById(contractId: Address)
+    @@nullable Contract findById(contractId: ContractId)
 }
 
 @@static ContractRepository createRepository(mirrorNode: MirrorNode)

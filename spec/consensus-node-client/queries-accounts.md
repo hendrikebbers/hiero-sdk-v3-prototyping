@@ -25,14 +25,14 @@ returns the richer `PaidQueryResponse<...>` with the actually-paid cost.
 
 ```
 namespace consensusnode.queries.accounts
-requires {Address} from ledger
+requires {Address, AccountId, ContractId, EvmAddress} from ledger
 requires {PublicKey} from keys
 requires {NativeToken} from nativeToken
 requires {Query, PaidQuery} from consensusnode.queries
 
 // Current balance snapshot of an account or contract. Returned by AccountBalanceQuery.
 type AccountBalance {
-    @@immutable accountId: Address                       // the account or contract this snapshot belongs to
+    @@immutable accountId: AccountId                     // the account or contract this snapshot belongs to
     @@immutable balance: NativeToken<ANY, ANY>           // native-token balance
     @@immutable tokenBalances: map<Address, int64>       // tokenId -> balance in the token's smallest unit
 }
@@ -42,14 +42,14 @@ type AccountBalance {
 @@finalType
 @@oneOf(accountId, contractId)
 AccountBalanceQuery extends Query<AccountBalance> {
-    @@immutable @@nullable accountId: Address
-    @@immutable @@nullable contractId: Address
+    @@immutable @@nullable accountId: AccountId
+    @@immutable @@nullable contractId: ContractId
 }
 
 // Full account state snapshot. Returned by AccountInfoQuery.
 type AccountInfo {
-    @@immutable accountId: Address
-    @@immutable @@nullable evmAddress: bytes                          // 20-byte EVM-address alias if assigned
+    @@immutable accountId: AccountId
+    @@immutable @@nullable evmAddress: EvmAddress                     // 20-byte EVM-address alias if assigned
     @@immutable balance: NativeToken<ANY, ANY>
     @@immutable @@nullable key: PublicKey
     @@immutable @@nullable accountMemo: string
@@ -59,7 +59,7 @@ type AccountInfo {
     @@immutable @@default(false) receiverSignatureRequired: bool
     @@immutable @@default(0) ownedNfts: int64
     @@immutable @@default(false) deleted: bool
-    @@immutable @@nullable stakedAccountId: Address                   // mutually exclusive with stakedNodeId
+    @@immutable @@nullable stakedAccountId: AccountId                 // mutually exclusive with stakedNodeId
     @@immutable @@nullable stakedNodeId: int64                        // mutually exclusive with stakedAccountId
     @@immutable @@default(false) declineStakingReward: bool
 }
@@ -67,7 +67,7 @@ type AccountInfo {
 // Paid query for the full account state.
 @@finalType
 AccountInfoQuery extends PaidQuery<AccountInfo> {
-    @@immutable accountId: Address
+    @@immutable accountId: AccountId
 }
 ```
 
@@ -98,7 +98,7 @@ QueryResponse<AccountBalance> response = new AccountBalanceQuery()
     .submit(client);
 
 AccountBalance balance = response.value;
-Address answeringNode  = response.answeredBy;   // useful for forensics
+AccountId answeringNode = response.answeredBy;  // useful for forensics
 ```
 
 ### Read full account state (paid)
@@ -120,23 +120,14 @@ patterns) is deferred — see
 
 ## Questions & Comments
 
-- **`AccountBalanceQuery` accepts either `accountId` or `contractId`.** Both target the same
-  underlying entity space at the protocol level; the dual setter matches the V2 ergonomic of
-  having a balance query work uniformly for accounts and smart contracts. `@@oneOf` enforces
-  exactly one of the two at construction.
-- **Open: collapse `accountId` / `contractId` into a single field.** V2's dual setter exists
-  because protobuf distinguishes the `AccountID` and `ContractID` message types in its
-  `oneof balanceSource`, and V2 surfaced both for caller ergonomics. In V3 both collapse to
-  `Address`, and on Hedera every contract owns an account at the same `shard.realm.num` —
-  the consensus node returns the same `AccountBalance` regardless of which `oneof` branch
-  was filled. A single `accountId: Address` field would therefore be sufficient (the SDK
-  always fills the `accountID` proto branch internally, which works for contract addresses
-  too). Trade-off: would drop the `@@oneOf`-enforced disambiguation and the explicit
-  `setContractId(...)` ergonomic, in exchange for a smaller, type-honest surface. To be
-  decided.
-- **`AccountInfo.evmAddress` is `bytes`, not a hex string.** Concrete language bindings
-  should expose it as a 20-byte value. Hex serialisation belongs at the rendering layer, not
-  in the data model.
+- **`AccountBalanceQuery` accepts either `accountId: AccountId` or `contractId: ContractId`.**
+  Both target the same underlying entity space at the protocol level, but they are distinct
+  typed identifiers in V3 (see [ADR-0003](../../docs/adr/0003-three-level-address-hierarchy-with-nullability-narrowing.md)).
+  The dual setter matches the V2 ergonomic of having a balance query work uniformly for
+  accounts and smart contracts. `@@oneOf` enforces exactly one of the two at construction.
+- **`AccountInfo.evmAddress` is the typed `EvmAddress` value type.** Carries 20 raw bytes
+  with hex `toString()` and `fromString` / `fromBytes` factories — concrete language bindings
+  do not need to expose a separate hex-string accessor.
 - **Deleted-account behaviour.** Querying a deleted account returns an `AccountInfo` with
   `deleted = true` and most other fields cleared. Callers should branch on `deleted` rather
   than assuming the rest of the snapshot is meaningful.

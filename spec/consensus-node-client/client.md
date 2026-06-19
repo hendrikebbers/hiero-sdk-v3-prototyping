@@ -11,19 +11,19 @@ A client defines a concrete network connection to a specific network with a spec
 
 ```
 namespace consensusnode.client
-requires {Address, Ledger} from ledger
+requires {AccountId, Ledger} from ledger
 requires {NetworkSetting} from ledger.config
 requires {PrivateKey} from keys
 requires {NativeTokenUnit} from nativeToken
 
 // Definition of an account that signs and pays for requests
 Account {
-    @@immutable accountId: Address // the account id of the operator
+    @@immutable accountId: AccountId // the account id of the operator
     @@immutable privateKey: PrivateKey // the private key of the operator
 }
 
 type NodeSignature {
-      @@immutable node: Address
+      @@immutable node: AccountId       // the consensus node's fee account
       @@immutable publicKey: PublicKey
       @@immutable signature: bytes
 }
@@ -31,7 +31,7 @@ type NodeSignature {
 // Helper to allow external signing of transactions
 abstraction TransactionSigner {
 
-  NodeSignature signTransaction(transactionBytes: bytes, node: Address)
+  NodeSignature signTransaction(transactionBytes: bytes, node: AccountId)
 }
 
 // Common base for anything that is handed off to the consensus node network and
@@ -73,7 +73,7 @@ HieroClient<$$Unit extends NativeTokenUnit> {
 The following example shows how to create a `HieroClient` instance:
 
 ```
-Address accountId = ...;
+AccountId accountId = ...;
 PrivateKey privateKey = ...;
 Account operatorAccount = new Account(accountId, privateKey);
 

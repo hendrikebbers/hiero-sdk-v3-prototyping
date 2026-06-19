@@ -212,7 +212,7 @@ AccountId extends EvmCapableAddress {
 
 // Id of a transaction
 abstraction TransactionId {
-  @@immutable accountId:Address // the account that is the payer of the transaction
+  @@immutable accountId:AccountId // the account that is the payer of the transaction
   @@immutable validStart:zonedDateTime // the start time of the transaction
   @@immutable @@nullable nonce:int32 // nonce of an internal transaction
 
@@ -256,7 +256,7 @@ type IpAddress {
 ConsensusNode {
     @@immutable ip: IpAddress // ip address of the node (IPv4 today; extensible to IPv6)
     @@immutable port: uint16 // port of the node
-    @@immutable account: Address // fee account of the node (NOT the stable DAB nodeId)
+    @@immutable account: AccountId // fee account of the node (NOT the stable DAB nodeId)
 }
 
 // Represents a mirror node on a network.
@@ -265,13 +265,24 @@ MirrorNode {
 }
 
 // The zero address (0.0.0). HAPI uses this value as a clear-sentinel on update
-// transactions for Address-typed fields: writing ZERO_ADDRESS to e.g.
-// TopicUpdateTransaction.autoRenewAccount or AccountUpdateTransaction.stakedAccountId
-// removes the previously configured value (distinct from leaving the field at its default
-// "unchanged"). The consensus node interprets the sentinel server-side; SDKs do not invent
-// the semantic locally. Callers should not use this value as an actual account id — there
-// is no account 0.0.0 on the network.
+// transactions for Address-typed fields: writing ZERO_ADDRESS to e.g. a generic-Address
+// update slot removes the previously configured value (distinct from leaving the field
+// at its default "unchanged"). The consensus node interprets the sentinel server-side;
+// SDKs do not invent the semantic locally. Callers should not use this value as an
+// actual entity id — there is no entity 0.0.0 on the network.
 constant ZERO_ADDRESS: Address = Address{shard: 0, realm: 0, num: 0, checksum: ""}
+
+// Account-typed clear-sentinel. Same role as ZERO_ADDRESS, but for AccountId-typed update
+// fields (e.g. AccountUpdateTransaction.stakedAccountId, TopicUpdateTransaction.autoRenewAccount,
+// TokenUpdateTransaction.autoRenewAccount). Writing ZERO_ACCOUNT_ID to such a field removes
+// the previously configured account. Carries num = 0 (satisfying the AccountId `@@oneOf`);
+// evmAddress and alias remain null. Not a real account.
+constant ZERO_ACCOUNT_ID: AccountId = AccountId{shard: 0, realm: 0, num: 0, checksum: "", evmAddress: null, alias: null}
+
+// Contract-typed clear-sentinel. Same role as ZERO_ADDRESS, but for ContractId-typed update
+// fields (e.g. once smart-contract transactions land). Carries num = 0; evmAddress is null.
+// Not a real contract.
+constant ZERO_CONTRACT_ID: ContractId = ContractId{shard: 0, realm: 0, num: 0, checksum: "", evmAddress: null}
 
 // factory methods of Address that should be added to the namespace in the best language dependent way
 

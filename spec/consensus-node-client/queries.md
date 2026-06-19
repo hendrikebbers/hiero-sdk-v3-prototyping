@@ -82,7 +82,7 @@ type-level honesty as the `Query` / `PaidQuery` split itself.
 
 ```
 namespace consensusnode.queries
-requires {Address} from ledger
+requires {AccountId} from ledger
 requires {HieroClient, Submittable} from consensusnode.client
 requires {NativeToken} from nativeToken
 
@@ -90,7 +90,7 @@ requires {NativeToken} from nativeToken
 // metadata about how the answer was obtained. Returned by Query.submit().
 type QueryResponse<$$T> {
     @@immutable value: $$T
-    @@immutable answeredBy: Address   // consensus node that produced this answer
+    @@immutable answeredBy: AccountId   // consensus node that produced this answer
 }
 
 // Envelope around the typed result of a PaidQuery. Extends QueryResponse with the
@@ -212,7 +212,7 @@ PaidQueryResponse<AccountInfo> response = new AccountInfoQuery()
 
 AccountInfo info        = response.value;
 NativeToken<ANY, ANY> c = response.cost;        // amount actually charged
-Address answeringNode    = response.answeredBy;  // which node served the query
+AccountId answeringNode  = response.answeredBy;  // which node served the query
 
 auditLog.record(info.accountId, c, answeringNode);
 ```
@@ -261,7 +261,7 @@ For free queries, `QueryResponse` carries `value` and `answeredBy`; `cost` is on
   [`queries-files.md`](queries-files.md), and any future Info type) because the caller
   already knows the ledger via their `HieroClient` and duplicating it on every typed payload
   is bloat. The open question is whether to surface it *once* on the envelope — analogous to
-  the existing `answeredBy: Address` — as
+  the existing `answeredBy: AccountId` — as
   `@@immutable ledgerId: bytes` (or `LedgerId`, once typed) on `QueryResponse<$$T>`. That
   keeps the metadata available for serialize-then-archive workflows without polluting every
   payload, and applies uniformly to free and paid queries. Defer until a concrete archival /

@@ -63,7 +63,7 @@ now (here: `submitKey`) does not need to sign creation.
 
 ```
 namespace consensusnode.transactions.topics
-requires {Address} from ledger
+requires {Address, AccountId} from ledger
 requires {PublicKey} from keys
 requires {Receipt, Transaction} from consensusnode.transactions
 
@@ -76,7 +76,7 @@ TopicCreateTransaction extends Transaction<TopicCreateReceipt> {
     @@immutable @@nullable submitKey: PublicKey         // controls message submission; unset → public topic; does NOT need to sign creation
     @@immutable @@nullable topicMemo: string            // short human-readable label (max 100 chars)
     @@immutable @@nullable autoRenewPeriod: seconds     // protocol default applies when unset
-    @@immutable @@nullable autoRenewAccount: Address    // pays auto-renewal; must sign the create transaction if set
+    @@immutable @@nullable autoRenewAccount: AccountId  // pays auto-renewal; must sign the create transaction if set
 }
 
 @@finalType
@@ -95,7 +95,7 @@ TopicUpdateTransaction extends Transaction<TopicUpdateReceipt> {
     @@immutable @@nullable topicMemo: string
     @@immutable @@nullable expirationTime: zonedDateTime
     @@immutable @@nullable autoRenewPeriod: seconds
-    @@immutable @@nullable autoRenewAccount: Address    // when set, the new account must also sign
+    @@immutable @@nullable autoRenewAccount: AccountId  // when set, the new account must also sign
 }
 
 @@finalType

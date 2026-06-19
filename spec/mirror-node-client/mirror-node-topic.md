@@ -6,7 +6,7 @@
 
 ```
 namespace mirrornode.topic
-requires {Address, MirrorNode, TransactionId} from ledger
+requires {Address, AccountId, MirrorNode, TransactionId} from ledger
 requires {PublicKey} from keys
 requires {FixedFee} from mirrornode.common
 requires {Page} from common
@@ -17,7 +17,7 @@ Topic {
     @@immutable @@nullable adminKey: PublicKey
     @@immutable @@nullable submitKey: PublicKey
     @@immutable @@nullable feeScheduleKey: PublicKey
-    @@immutable @@nullable autoRenewAccount: Address
+    @@immutable @@nullable autoRenewAccount: AccountId
     @@immutable autoRenewPeriod: seconds
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
@@ -42,7 +42,7 @@ TopicMessage {
     @@immutable @@nullable chunkInfo: ChunkInfo
     @@immutable consensusTimestamp: zonedDateTime
     @@immutable message: string
-    @@immutable payerAccountId: Address
+    @@immutable payerAccountId: AccountId
     @@immutable runningHash: bytes
     @@immutable runningHashVersion: int32
     @@immutable sequenceNumber: int64

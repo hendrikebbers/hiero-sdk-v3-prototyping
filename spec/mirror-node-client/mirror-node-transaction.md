@@ -6,7 +6,7 @@
 
 ```
 namespace mirrornode.transaction
-requires {Address, MirrorNode, TransactionId} from ledger
+requires {AccountId, MirrorNode, TransactionId} from ledger
 requires {NftTransfer, StakingRewardTransfer, TokenTransfer, Transfer} from mirrornode.common
 requires {Page} from common
 
@@ -67,16 +67,16 @@ TransactionInfo {
 
 abstraction TransactionRepository {
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccount(accountId: Address)
+    Page<TransactionInfo> findByAccount(accountId: AccountId)
 
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccountAndType(accountId: Address, type: TransactionType)
+    Page<TransactionInfo> findByAccountAndType(accountId: AccountId, type: TransactionType)
 
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccountAndResult(accountId: Address, result: TransactionResult)
+    Page<TransactionInfo> findByAccountAndResult(accountId: AccountId, result: TransactionResult)
 
     @@async @@throws(mirror-node-error)
-    Page<TransactionInfo> findByAccountAndModification(accountId: Address, modification: BalanceModification)
+    Page<TransactionInfo> findByAccountAndModification(accountId: AccountId, modification: BalanceModification)
 
     @@async @@throws(mirror-node-error)
     @@nullable TransactionInfo findById(transactionId: TransactionId)

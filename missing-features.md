@@ -273,27 +273,38 @@ to support `Address`'s `num`-narrowing, with per-language mappings in
 sum-type variant that wraps a `ContractId` with the additional semantic
 "may be invoked through a delegated call". See §3.2.
 
-#### Follow-up: call-site migration to the typed identifiers
+#### Call-site migration to the typed identifiers — landed
 
-The typed `AccountId` / `ContractId` / `EvmAddress` are defined but not
-yet **used** across the existing specs — call sites still pass plain
-`Address` for accounts and contracts (consistent with HAPI's wire model,
-which encodes accounts numerically by default). Migration is a separate,
-mechanical sweep that touches most spec files:
+The typed `AccountId` / `ContractId` / `EvmAddress` are now used
+throughout the spec:
 
-- Replace `accountId: Address` with `accountId: AccountId` everywhere
-  an account is referenced — `transactions-accounts.md`,
-  `transactions-tokens.md` (treasury, associate/dissociate accounts),
-  `TransactionId.accountId`, `Account.accountId` in `client.md`, etc.
-- Replace `contractId: Address` with `contractId: ContractId` once
-  smart-contract transactions (§1.4) land.
-- Replace ad-hoc `evmAddress: bytes` / `evmAddress: string` fields in
-  `mirror-node-account.md`, `mirror-node-contract.md`, and
-  `queries-accounts.md` with `evmAddress: EvmAddress`.
+- Account-typed fields (`accountId`, `treasuryAccountId`,
+  `autoRenewAccount`, `payerAccountId`, `stakedAccountId`,
+  `owner` / `ownerId`, `sender` / `receiver`, `transferAccountId`,
+  `from`/`toAccountId`, `ownerAccountId` / `spenderAccountId` /
+  `delegatingSpender`, allowance owner / spender refs,
+  `TransactionId.accountId`, `Account.accountId`, `NodeBody.node`,
+  `NodeSignature.node`, `NetworkSetting` consensus-node fee account,
+  `ConsensusNode.account`, `QueryResponse.answeredBy`) carry `AccountId`.
+- Contract-typed fields (`contractId` on `mirrornode.contract.Contract`,
+  `enterprise.service.contract.Contract`, `AccountBalanceQuery.contractId`,
+  `SystemDelete/UndeleteTransaction.contractId`,
+  `SmartContractService` call/find methods) carry `ContractId`.
+- Flat EVM-address values (`AccountInfo.evmAddress` on consensus and
+  mirror-node side, `Contract.evmAddress` on mirror-node side,
+  `ofAddress` parameter factory on the contract service) carry the
+  typed `EvmAddress`.
+- `ZERO_ACCOUNT_ID` and `ZERO_CONTRACT_ID` clear-sentinels were added
+  to [`base/ledger.md`](spec/base/ledger.md) alongside the existing
+  `ZERO_ADDRESS`, for the same clear-on-update pattern.
 
-Each migration is additive and can land per-file; nothing in the
-existing spec breaks until a file is migrated, because `Address`
-remains a valid concrete type with the same on-wire shape.
+Token / topic / file / schedule ids remain `Address` per the design
+decision recorded above. Some fields in
+[`mirror-node-contract.md`](spec/mirror-node-client/mirror-node-contract.md)
+that historically used raw `string` for entity references (`obtainerId`,
+`proxyAccountId`, `fileId`) are flagged with `// TODO` markers — those
+predate the typed-identifier work and want a separate cleanup that
+moves them to `AccountId` / `Address` rather than `string`.
 
 #### Composite identifier types — still missing as **types**
 
