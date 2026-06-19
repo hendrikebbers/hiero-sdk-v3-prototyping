@@ -299,11 +299,77 @@ high-volume multiplier) — **all :x:**
 
 ### 3.5 Records / receipts — fields on `Receipt` / `Record`
 
-Today `Receipt` / `Record<$$Receipt>` only carries base fields. Missing v2
-fields include: `exchangeRate`, `topicSequenceNumber`, `topicRunningHash`,
-`totalSupply`, `serials`, `scheduleId`, `assessedCustomFees`,
-`automaticTokenAssociations`, `paidStakingRewards`, `evmAddress`,
-`prngBytes` / `prngNumber`, `signerNonce`, `pendingAirdropRecords`.
+Today the V3 base types carry:
+
+- `Receipt`: `transactionId`, `status`, `exchangeRate`, `nextExchangeRate`
+- `Record<$$Receipt>`: `transactionId`, `consensusTimestamp`, `receipt`
+
+(`exchangeRate` / `nextExchangeRate` are already on the base, so they are
+**not** in the missing list below.) The remaining v2 fields split into two
+distinct groups: transaction-specific Receipt fields, which collapse cleanly
+into the existing typed `XxxReceipt extends Receipt` pattern; and Record
+fields, which need a base-`Record` design decision before they can land
+cleanly.
+
+#### Receipt-level fields (transaction-specific)
+
+| Field(s) | Set by | V3 home |
+| --- | --- | --- |
+| `topicSequenceNumber` + `topicRunningHash` (+ `topicRunningHashVersion`) | `TopicMessageSubmit` | `TopicMessageSubmitReceipt` (file pending — §1.5) |
+| `totalSupply` | `TokenMint`, `TokenBurn`, `TokenWipe` | `TokenMintReceipt` :white_check_mark: / `TokenBurnReceipt` :white_check_mark: ([`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md)); add to `TokenWipeReceipt` when it lands |
+| `serials` | `TokenMint` (NFT only) | `TokenMintReceipt` :white_check_mark: |
+| `scheduleId` (+ `scheduledTransactionId`) | `ScheduleCreate` | `ScheduleCreateReceipt` (file pending — §1.6) |
+| `evmAddress` | `AccountCreate` (alias / auto-create path) **and** `ContractCreate` | `AccountCreateReceipt` (nullable — only populated on the alias path) **and** `ContractCreateReceipt` (file pending — §1.4) |
+| `prngBytes` **xor** `prngNumber` | `UtilPrng` (HIP-351) — one of the two depending on the `range` parameter | `PrngReceipt`, modelled as `@@oneOf(prngBytes, prngNumber)` (file pending — §1.7) |
+
+These seven fields are routine: each rides on the existing
+typed-receipt-per-transaction pattern. Five of them are still pending only
+because the transaction itself is still pending (`TopicMessageSubmit`,
+`ScheduleCreate`, `UtilPrng`, plus the relevant fields on `AccountCreate` /
+`ContractCreate` receipts); add the field at the same time the receipt is
+specified. `totalSupply` + `serials` on the Token-Mint/Burn receipts are
+already in.
+
+#### Record-level fields (cross-cutting OR on a typed Record)
+
+| Field | When set | V3 home |
+| --- | --- | --- |
+| `assessedCustomFees` | any transaction touching tokens-with-custom-fees — typically `TransferTransaction`, `TokenAirdrop` | base `Record<$$Receipt>` as `@@default([]) list<AssessedCustomFee>`; depends on the write-side `CustomFee` hierarchy in §3.3 |
+| `automaticTokenAssociations` | any transaction whose execution auto-associates an account (`maxAutomaticTokenAssociations > 0`, first inbound transfer) | base `Record<$$Receipt>` as `@@default([]) list<TokenAssociation>` |
+| `paidStakingRewards` | any transaction whose execution triggers a staking-reward payout to a participating account | base `Record<$$Receipt>` as `@@default([]) list<AccountAmount>` |
+| `signerNonce` | `EthereumTransaction` only | typed `EthereumTransactionRecord` — not on the base |
+| `pendingAirdropRecords` | `TokenAirdrop` only (HIP-904), when the recipient is not auto-associated | typed `TokenAirdropRecord` — not on the base |
+
+The first three are **genuinely cross-cutting**: they can appear on most
+transactions and depend on what happened at execution, not on the
+transaction's declared type. The natural home is `Record<$$Receipt>` base,
+each as `@@default([])` so consumers always see a non-null but
+usually-empty list.
+
+The last two are **strictly transaction-specific but live on the Record,
+not the Receipt** (HAPI: `TransactionRecord.ethereum_nonce` /
+`new_pending_airdrops` are record fields, not receipt fields). V3 today
+does not type the record per transaction — `Record<$$Receipt>` carries
+`receipt: $$Receipt` and is otherwise generic. To express `signerNonce` /
+`pendingAirdropRecords` as type-specific record fields, `Record` would have
+to be parameterised over a second generic (e.g.
+`Record<$$Receipt, $$Extras>` or a `$$Record` sibling). That is an
+architectural change that should land **before** either `EthereumTransaction`
+or `TokenAirdrop` is specified, so that those specs can use the typed
+record from the start rather than being retrofitted.
+
+**Open architectural question** (worth raising in a Q&C entry on
+[`transactions.md`](spec/consensus-node-client/transactions.md) before
+the next record-touching transaction lands): should `Record<$$Receipt>`
+carry a fixed set of cross-cutting fields (`assessedCustomFees`,
+`automaticTokenAssociations`, `paidStakingRewards`), OR additionally be
+parameterised over a `$$Record` (or `$$Extras`) type so that transactions
+with type-specific record content (`signerNonce`,
+`pendingAirdropRecords`, ...) can express it through the type system?
+Both paths are compatible; the question is whether the typed-record
+parameter is worth its complexity for the two known consumers, or whether
+those two should live as `@@nullable` cross-cutting fields on the base
+instead.
 
 ### 3.6 Status / enums
 
