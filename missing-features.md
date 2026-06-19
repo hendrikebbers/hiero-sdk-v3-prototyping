@@ -234,24 +234,80 @@ node-address entries explicitly — tracked in that file's *Questions & Comments
 
 ### 3.1 Identifier types
 
-Today only a generic `Address` exists. In v2 these are first-class types:
+The address hierarchy is **now landed** in
+[`base/ledger.md`](spec/base/ledger.md). The driving insight is that every
+HAPI entity id is `(shard, realm, X)` and only the selector `X` varies:
+for tokens / topics / files / schedules it is a single `num`; for
+contracts it is `num` xor a 20-byte EVM address; for accounts it is `num`
+xor an EVM address xor a HIP-32 key alias. That observation lets us
+factor `(shard, realm, checksum)` into a shared abstract base
+(`BaseAddress`) and let each concrete identifier add its own selector
+shape as a sibling — strictly Liskov-clean, with no meta-language
+extension required.
 
-| Type | V3 spec |
-| --- | --- |
-| `AccountId` (with alias + EVM-address alias, HIP-583) | :warning: partially via `Address` |
-| `ContractId` (incl. `fromEvmAddress`) | :x: |
-| `DelegateContractId` | :x: |
-| `TokenId` | :x: |
-| `TopicId` | :x: |
-| `FileId` | :x: |
-| `ScheduleId` | :x: |
-| `NftId` (`TokenId` + serial) | :x: |
-| `PendingAirdropId` | :x: |
-| `HookId`, `HookEntityId` | :x: |
-| `EvmAddress` (as a type, not just a string) | :x: |
-| `LedgerId` (MAINNET / TESTNET / PREVIEWNET / custom) | :warning: identifier constants, no type |
-| `SemanticVersion` | :x: |
-| `TransactionHash` (as a type, separate from `TransactionId`) | :x: |
+#### Concrete identifier types landed in `base/ledger.md`
+
+| Type | Shape | Used for |
+| --- | --- | --- |
+| `BaseAddress` (abstract) | `shard`, `realm`, `checksum` + common methods | parent of every concrete address kind below |
+| `Address` extends `BaseAddress` | adds `num: uint64` (always set) | tokens, topics, files, schedules — the typed identifier already referenced throughout the spec |
+| `ContractId` extends `BaseAddress` | `@@oneOf(num, evmAddress)`; mirrors HAPI `ContractID` exactly | smart contracts |
+| `AccountId` extends `BaseAddress` | `@@oneOf(num, evmAddress, alias)`; splits HAPI's opaque `AccountID.alias: bytes` into typed `evmAddress: EvmAddress` (HIP-583) and `alias: bytes` (HIP-32 key alias) | accounts |
+| `EvmAddress` | 20-byte raw value, NOT a `(shard, realm, num)` tuple | EVM-side identifiers; selector slot inside `ContractId` / `AccountId`; stand-alone return type wherever an EVM address appears on its own |
+
+`AccountId` and `ContractId` are **siblings**, not in a vertical chain
+(no `EvmCapableAddress` intermediate). The `(num, evmAddress)` slot pair
+is repeated once in each — a trivially small price for keeping the
+hierarchy LSP-clean and the meta-language unchanged.
+
+`DelegateContractId` is **not** an identifier type. It is a `Key`
+sum-type variant that wraps a `ContractId` with the additional semantic
+"may be invoked through a delegated call". See §3.2.
+
+#### Follow-up: call-site migration to the typed identifiers
+
+The typed `AccountId` / `ContractId` / `EvmAddress` are defined but not
+yet **used** across the existing specs — call sites still pass plain
+`Address` for accounts and contracts (consistent with HAPI's wire model,
+which encodes accounts numerically by default). Migration is a separate,
+mechanical sweep that touches most spec files:
+
+- Replace `accountId: Address` with `accountId: AccountId` everywhere
+  an account is referenced — `transactions-accounts.md`,
+  `transactions-tokens.md` (treasury, associate/dissociate accounts),
+  `TransactionId.accountId`, `Account.accountId` in `client.md`, etc.
+- Replace `contractId: Address` with `contractId: ContractId` once
+  smart-contract transactions (§1.4) land.
+- Replace ad-hoc `evmAddress: bytes` / `evmAddress: string` fields in
+  `mirror-node-account.md`, `mirror-node-contract.md`, and
+  `queries-accounts.md` with `evmAddress: EvmAddress`.
+
+Each migration is additive and can land per-file; nothing in the
+existing spec breaks until a file is migrated, because `Address`
+remains a valid concrete type with the same on-wire shape.
+
+#### Composite identifier types — still missing as **types**
+
+These are not single-selector addresses but composites of multiple
+`BaseAddress`-typed fields plus extra information. They land alongside
+the feature that first needs each one:
+
+| Type | Composition | Lands with |
+| --- | --- | --- |
+| `NftId` | `(tokenId: Address, serial: int64)`; currently spread across two parameters in `NftTransfer` and `TokenBurnTransaction.serials` | NFT-touching APIs that take a single-NFT argument — HIP-657 `TokenUpdateNfts`, HIP-904 airdrops |
+| `PendingAirdropId` | `(senderId: AccountId, receiverId: AccountId, tokenId: Address[, serial: int64])`; 3- or 4-tuple depending on fungible vs NFT | HIP-904 `TokenAirdrop` / `TokenClaimAirdrop` / `TokenCancelAirdrop` (§1.2) |
+| `HookId` / `HookEntityId` | composite (entity-bound) per HIP-1195 | Hiero Hooks (§1.7) |
+
+#### Other identifier-shaped types tracked here
+
+Not entity ids in the `(shard, realm, X)` sense, but still genuinely
+missing as typed values:
+
+| Type | Why it is a type and not a constant | V3 spec |
+| --- | --- | --- |
+| `LedgerId` (MAINNET / TESTNET / PREVIEWNET / custom) | a value object identifying which network a transaction / address belongs to; today exposed only as identifier constants in [`base/ledger.md`](spec/base/ledger.md) | :warning: constants only, no type |
+| `SemanticVersion` | `(major, minor, patch, pre, build)` value object used by `NetworkVersionInfoQuery` ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md)) | :x: |
+| `TransactionHash` | SHA-384 of the `SignedTransaction` bytes; distinct from `TransactionId` (the payer + valid-start tuple), and the actual lookup key on the mirror node (`GET /api/v1/transactions/{hash}`) | :x: (gated behind §1.9's deferred `getTransactionHash*` decision — if those accessors don't land, the typed `TransactionHash` may not be needed either) |
 
 ### 3.2 Keys
 
