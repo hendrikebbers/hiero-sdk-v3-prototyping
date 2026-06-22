@@ -109,14 +109,17 @@ First concrete service file landed in
 | --- | --- |
 | `AccountBalanceQuery` (free) | :white_check_mark: |
 | `AccountInfoQuery` (paid) | :white_check_mark: |
+| `AccountRecordsQuery` (paid) | :white_check_mark: |
 
 Still missing per service:
 
-- `AccountRecordsQuery`
+- ~~`AccountRecordsQuery`~~ :white_check_mark:
+  ([`queries-accounts.md`](spec/consensus-node-client/queries-accounts.md))
 - `ContractCallQuery` (local EVM call), `ContractInfoQuery`, `ContractBytecodeQuery`
 - ~~`FileContentsQuery`, `FileInfoQuery`~~ :white_check_mark:
   ([`queries-files.md`](spec/consensus-node-client/queries-files.md))
-- `TokenInfoQuery`, `TokenNftInfoQuery`
+- ~~`TokenInfoQuery`, `TokenNftInfoQuery`~~ :white_check_mark:
+  ([`queries-tokens.md`](spec/consensus-node-client/queries-tokens.md))
 - ~~`TopicInfoQuery`~~ :white_check_mark:
   ([`queries-topics.md`](spec/consensus-node-client/queries-topics.md))
 - `ScheduleInfoQuery`
@@ -616,9 +619,10 @@ setup flexibility:
    transactions (`Create` / `Associate` / `Mint` / `Burn` / transfer),
    topic transactions (`Create` / `Update` / `Delete` / `SubmitMessage`),
    file transactions, contract transactions + `EthereumTransaction`, the
-   remaining common queries (`AccountRecordsQuery`, contract / file / token /
-   topic / schedule info queries). Query base abstractions + first two
-   concrete queries already landed; pattern is established for the rest.
+   remaining common queries (contract / schedule info queries; account / file /
+   token / topic info queries have landed). Query base abstractions and the
+   account / file / token / topic concrete queries already landed; pattern is
+   established for the rest.
 2. **Modern HIPs:** Schedule (HIP-755), airdrops (HIP-904), DAB node ops
    (HIP-869 / HIP-1046 — land in `consensus-node-admin-client`, §2),
    custom fees on topics (HIP-991), batch (HIP-551),

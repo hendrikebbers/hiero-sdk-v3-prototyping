@@ -6,7 +6,7 @@ worked example of the free / paid split.
 
 ## Description
 
-Two queries are exposed here, one of each kind:
+Three queries are exposed here:
 
 - **`AccountBalanceQuery`** extends `Query<AccountBalance>` — a free read that returns the
   native-token balance and per-token balances for an account or smart contract. The protocol
@@ -17,7 +17,12 @@ Two queries are exposed here, one of each kind:
   etc.). Auto-discovered cost; the operator pays by default, or a `payer` `Account` may be
   set for sponsored reads.
 
-The pair illustrates the free / paid split established by `consensusnode.queries`: a free
+- **`AccountRecordsQuery`** extends `PaidQuery<AccountRecords>` — a paid read that returns the
+  recent transaction records in which the account was the effective payer. This is a legacy
+  ("threshold records") surface: on modern Hiero / Hedera networks the list is effectively
+  always empty (see *Questions & Comments*). Kept for V2 parity.
+
+The set illustrates the free / paid split established by `consensusnode.queries`: a free
 query's `submit(...)` returns a `QueryResponse<...>`, while a paid query's `submit(...)`
 returns the richer `PaidQueryResponse<...>` with the actually-paid cost.
 
@@ -29,6 +34,7 @@ requires {Address, AccountId, ContractId, EvmAddress} from ledger
 requires {PublicKey} from keys
 requires {NativeToken} from nativeToken
 requires {Query, PaidQuery} from consensusnode.queries
+requires {Receipt, Record} from consensusnode.transactions
 
 // Current balance snapshot of an account or contract. Returned by AccountBalanceQuery.
 type AccountBalance {
@@ -67,6 +73,24 @@ type AccountInfo {
 // Paid query for the full account state.
 @@finalType
 AccountInfoQuery extends PaidQuery<AccountInfo> {
+    @@immutable accountId: AccountId
+}
+
+// The recent transaction records associated with an account. Returned by AccountRecordsQuery.
+// `records` is heterogeneous — it mixes records of whatever transaction types the account
+// paid for — so it is typed against the base `Record<Receipt>` rather than a concrete
+// receipt subtype. The list is never null; an account with no qualifying records (the common
+// case on modern networks) yields an empty list.
+type AccountRecords {
+    @@immutable accountId: AccountId
+    @@immutable @@default([]) records: list<Record<Receipt>>
+}
+
+// Paid query for the recent transaction records in which `accountId` was the effective payer.
+// Legacy "threshold records" surface — on modern Hiero / Hedera networks the returned list is
+// effectively always empty (see Questions & Comments). Kept for V2 parity.
+@@finalType
+AccountRecordsQuery extends PaidQuery<AccountRecords> {
     @@immutable accountId: AccountId
 }
 ```
@@ -118,6 +142,24 @@ The client's operator pays. A configurable payer (for paymaster / custodial / sp
 patterns) is deferred — see
 [ADR-0002](../../docs/adr/0002-defer-paid-query-payer-customization.md).
 
+### Read an account's recent records (paid)
+
+```
+AccountRecords result = new AccountRecordsQuery()
+    .accountId(...)
+    .submit(client)
+    .value;
+
+for (Record<Receipt> record : result.records) {
+    TransactionId id = record.transactionId;
+    TransactionStatus status = record.receipt.status;
+}
+```
+
+`records` is typed against the base `Record<Receipt>`; callers that know a specific entry's
+transaction type can narrow its `receipt` at the language level. On modern networks the list
+is typically empty — see *Questions & Comments*.
+
 ## Questions & Comments
 
 - **`AccountBalanceQuery` accepts either `accountId: AccountId` or `contractId: ContractId`.**
@@ -136,3 +178,20 @@ patterns) is deferred — see
   different field semantics (e.g. consensus-node `balance` is always live; mirror-node
   `balance` carries a `balanceTimestamp`). The two are kept separate to avoid coupling the
   consensus-node API to mirror-node update cadence.
+
+- **`AccountRecordsQuery` is a legacy surface and almost always returns an empty list.** HAPI's
+  `CryptoGetAccountRecords` returns *threshold records* — records the network retained for an
+  account because a transaction's transfer crossed the (now removed)
+  `sendRecordThreshold` / `receiveRecordThreshold` configured on the account. Those threshold
+  fields were deprecated and the records are no longer generated on current Hiero / Hedera
+  networks, so the list is effectively always empty. The query is kept for V2 parity; callers
+  that want an account's transaction history should use the mirror node
+  (`mirrornode.transaction`) instead, which is the supported path and is free. We may drop this
+  query before V3 GA if no consumer needs the parity — flagged for review.
+
+- **`AccountRecords.records` is typed `list<Record<Receipt>>`, not a concrete record type.**
+  The list mixes records of whatever transaction types the account paid for, so it is bound to
+  the base abstraction `Record<Receipt>` from [`transactions.md`](transactions.md). Callers that
+  need a typed receipt narrow the element at the language level (e.g. a pattern match / `instanceof`).
+  This is the only place in the query specs that returns the base `Record` rather than a
+  query-specific result type.
