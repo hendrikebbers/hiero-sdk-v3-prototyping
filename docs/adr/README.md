@@ -14,3 +14,4 @@ deleted — superseded ADRs link forward to the decision that replaces them.
 | [0001](0001-transaction-and-packed-transaction-split.md) | Split the transaction API into `Transaction` and `PackedTransaction` | Accepted |
 | [0002](0002-defer-paid-query-payer-customization.md) | Defer payer customization for paid queries | Accepted |
 | [0003](0003-three-level-address-hierarchy-with-nullability-narrowing.md) | Three-level address hierarchy with nullability narrowing | Accepted |
+| [0004](0004-endorsement-authorization-sum-type.md) | Model HAPI authorization keys as an `Endorsement` sum type | Proposed |
