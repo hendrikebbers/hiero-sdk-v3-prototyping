@@ -16,20 +16,24 @@ Status legend:
 
 ## 1. `consensus-node-client` — transactions and queries
 
-### 1.2 Token service (HTS) — core lifecycle landed, admin / HIP-904 still missing
+### 1.2 Token service (HTS)
 
-Open in [`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md)
-*Questions & Comments*: HIP-540 key-clearing is deferred to a future write-side `KeyUpdate`
-type (see [ADR-0004](docs/adr/0004-authority-authorization-sum-type.md));
-`TokenCreate.customFees` write-side builder deferred (depends on §3.3).
+Specified: core lifecycle
+([`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md)); management
+transactions — `TokenWipe`, `TokenFreeze` / `TokenUnfreeze`, `TokenGrantKyc` / `TokenRevokeKyc`,
+`TokenPause` / `TokenUnpause`, `TokenUpdateNfts` (HIP-657)
+([`transactions-tokens-management.md`](spec/consensus-node-client/transactions-tokens-management.md));
+HIP-904 airdrops — `TokenAirdrop` / `TokenClaimAirdrop` / `TokenCancelAirdrop` / `TokenReject`
+([`transactions-tokens-airdrops.md`](spec/consensus-node-client/transactions-tokens-airdrops.md)).
 
-Still missing — admin operations and HIP-904 airdrops:
+Still open:
 
-`TokenWipe`, `TokenFreeze` / `TokenUnfreeze`,
-`TokenGrantKyc` / `TokenRevokeKyc`, `TokenPause` / `TokenUnpause`,
-`TokenFeeScheduleUpdate`, `TokenUpdateNfts` (HIP-657),
-`TokenAirdrop` / `TokenClaimAirdrop` / `TokenCancelAirdrop` /
-`TokenReject` (HIP-904) — **all :x:**
+- `TokenFeeScheduleUpdate` — sole payload is the custom-fee schedule; blocked on the write-side
+  `CustomFee` hierarchy (§3.3).
+- HIP-540 key-clearing — deferred to a future write-side `KeyUpdate` type
+  ([ADR-0004](docs/adr/0004-authority-authorization-sum-type.md)).
+- `TokenCreate.customFees` write-side builder — depends on §3.3.
+- Airdrop *pending-airdrop* record field — part of the base-`Record` design decision (§3.5).
 
 ### 1.3 File service
 
