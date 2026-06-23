@@ -297,11 +297,6 @@ codes should ship in the standard mapping. Also missing: `TokenKeyValidation`
 - `GET /contracts/logs` (filter `topic0`..`topic3`)
 - `POST /contracts/call` (HIP-584 / HIP-1027, `eth_call` equivalent)
 
-**Network** — missing:
-
-- `POST /network/fees` (fee estimation, HIP-1313)
-- `GET /network/nodes` (address book — missing as a repository method)
-
 **Tokens** — missing:
 
 - `GET /tokens/{id}/nfts/{serial}/transactions` (NFT history)
