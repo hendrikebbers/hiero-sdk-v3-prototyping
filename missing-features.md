@@ -16,36 +16,12 @@ Status legend:
 
 ## 1. `consensus-node-client` — transactions and queries
 
-Only the **account service** is currently specified
-(`AccountCreate/Update/Delete`). All other service transactions are missing.
-
-### 1.1 Crypto / transfers
-
-| API in v2 | V3 spec |
-| --- | --- |
-| `TransferTransaction` (HBAR + fungible + NFT in one) | :white_check_mark: |
-| `AccountAllowanceApproveTransaction` (HBAR / token / NFT / all serials) | :white_check_mark: |
-| `AccountAllowanceDeleteTransaction` | :white_check_mark: |
-
 ### 1.2 Token service (HTS) — core lifecycle landed, admin / HIP-904 still missing
 
-Core lifecycle and supply transactions are now specified in
-[`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md):
-
-| Transaction | V3 spec |
-| --- | --- |
-| `TokenCreate` | :white_check_mark: |
-| `TokenUpdate` | :white_check_mark: |
-| `TokenDelete` | :white_check_mark: |
-| `TokenAssociate` | :white_check_mark: |
-| `TokenDissociate` | :white_check_mark: |
-| `TokenMint` (FT amount + NFT metadata) | :white_check_mark: |
-| `TokenBurn` (FT amount + NFT serials) | :white_check_mark: |
-
-Open inside that file's *Questions & Comments*: HIP-540 key-clearing is deferred to a future
-write-side `KeyUpdate` type (see [ADR-0004](docs/adr/0004-authority-authorization-sum-type.md));
-`TokenCreate.customFees` write-side builder deferred (depends on §3.3). (The key fields themselves
-are now typed as `Authority` — see §3.2.)
+Open in [`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md)
+*Questions & Comments*: HIP-540 key-clearing is deferred to a future write-side `KeyUpdate`
+type (see [ADR-0004](docs/adr/0004-authority-authorization-sum-type.md));
+`TokenCreate.customFees` write-side builder deferred (depends on §3.3).
 
 Still missing — admin operations and HIP-904 airdrops:
 
@@ -55,17 +31,10 @@ Still missing — admin operations and HIP-904 airdrops:
 `TokenAirdrop` / `TokenClaimAirdrop` / `TokenCancelAirdrop` /
 `TokenReject` (HIP-904) — **all :x:**
 
-Also new in base: [`spec/base/token.md`](spec/base/token.md) (`token` namespace) now hosts the
-`TokenType` / `TokenSupplyType` enums shared by the write side and the mirror-node read side; it
-is the planned future home for the typed `TokenId` / `NftId` / `PendingAirdropId` identifiers
-tracked in §3.1.
-
 ### 1.3 File service
 
-`FileCreate`, `FileAppend` (chunked), `FileUpdate`, `FileDelete` — :white_check_mark:
-([`transactions-files.md`](spec/consensus-node-client/transactions-files.md)).
-Open: chunked-append model (per-chunk receipts vs. single-receipt facade) — tracked in that
-file's *Questions & Comments*.
+Open: chunked-append model (per-chunk receipts vs. single-receipt facade) — tracked in
+[`transactions-files.md`](spec/consensus-node-client/transactions-files.md) *Questions & Comments*.
 
 ### 1.4 Smart contract service
 
@@ -74,8 +43,6 @@ file's *Questions & Comments*.
 
 ### 1.5 Topic / HCS
 
-`TopicCreate`, `TopicUpdate`, `TopicDelete` — :white_check_mark:
-([`transactions-topics.md`](spec/consensus-node-client/transactions-topics.md)).
 `TopicMessageSubmit` (chunked) — :x: (shares the chunking design question with
 `FileAppend`). HIP-991 custom fees on topics (`customFees`, `feeScheduleAuthority`,
 `feeExemptAuthorities`) — :x: (depends on write-side custom-fee model from §3.3).
@@ -94,53 +61,21 @@ file's *Questions & Comments*.
 
 ### 1.8 Queries (consensus-node-side)
 
-Base abstractions are now specified in
-[`spec/consensus-node-client/queries.md`](spec/consensus-node-client/queries.md):
+The base abstractions (`Query` / `PaidQuery` / `QueryResponse` / `PaidQueryResponse`) and the
+account / file / token / topic info queries are specified. Still missing:
 
-- `Query<$$Result>` — free queries; extends `Submittable<QueryResponse<$$Result>>`.
-- `PaidQuery<$$Result>` — paid queries; adds auto-discovered cost, `maxQueryPayment`
-  ceiling, optional `payer` override (sponsored queries), and `getCost()`.
-- `QueryResponse<$$T>` / `PaidQueryResponse<$$T>` — envelope types carrying `value`,
-  `answeredBy`, and (paid only) `cost`.
-
-First concrete service file landed in
-[`queries-accounts.md`](spec/consensus-node-client/queries-accounts.md):
-
-| Query | V3 spec |
-| --- | --- |
-| `AccountBalanceQuery` (free) | :white_check_mark: |
-| `AccountInfoQuery` (paid) | :white_check_mark: |
-| `AccountRecordsQuery` (paid) | :white_check_mark: |
-
-Still missing per service:
-
-- ~~`AccountRecordsQuery`~~ :white_check_mark:
-  ([`queries-accounts.md`](spec/consensus-node-client/queries-accounts.md))
 - `ContractCallQuery` (local EVM call), `ContractInfoQuery`, `ContractBytecodeQuery`
-- ~~`FileContentsQuery`, `FileInfoQuery`~~ :white_check_mark:
-  ([`queries-files.md`](spec/consensus-node-client/queries-files.md))
-- ~~`TokenInfoQuery`, `TokenNftInfoQuery`~~ :white_check_mark:
-  ([`queries-tokens.md`](spec/consensus-node-client/queries-tokens.md))
-- ~~`TopicInfoQuery`~~ :white_check_mark:
-  ([`queries-topics.md`](spec/consensus-node-client/queries-topics.md))
 - `ScheduleInfoQuery`
-- ~~`NetworkVersionInfoQuery`, `NodeAddressBookQuery`~~ :white_check_mark: — landed in
-  `consensus-node-admin-client` instead of here, see §2.3
-  ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md))
 - `MirrorNodeContractCallQuery` (HIP-1027), `MirrorNodeContractEstimateGasQuery`
   — these belong on `mirrornode.contract.ContractRepository`, not in `consensusnode.queries`
 
 ### 1.9 Features on `Transaction<...>` / `PackedTransaction<...>`
 
-The lifecycle (build → pack → sign → submit) is now explicit. `Submittable` (defined in
-`consensusnode.client`) is the shared retry/submit base for both `PackedTransaction` and
-`Query`.
+The lifecycle (build → pack → sign → submit) is specified, including the offline / HSM signing
+surface (`signableBodies()`, `sign(list<NodeSignature>)`). Still missing:
 
 | Feature in v2 | V3 spec |
 | --- | --- |
-| Explicit freeze step | :white_check_mark: via `Transaction.pack(payer, nodes)` |
-| `addSignature(PublicKey, byte[])` (offline signing) | :white_check_mark: via `PackedTransaction.sign(list<NodeSignature>)` |
-| `getSignatures()` / `signableNodeBodyBytesList()` (HSM workflow) | :white_check_mark: via `nodeSignatures` field + `signableBodies()` |
 | `getTransactionHash()` / `getTransactionHashPerNode()` | :x: deliberately deferred — see note below |
 | `setRegenerateTransactionId(boolean)` | :x: will NOT land in V3 — see note below (and [`transactions.md`](spec/consensus-node-client/transactions.md) *Questions & Comments*) |
 | `batchify(Client, Key)` | :x: |
@@ -179,58 +114,19 @@ Notes on the two annotated rows:
 
 ## 2. `consensus-node-admin-client` — admin-only transactions
 
-A new module planned on top of `consensus-node-client`. It collects the transactions
-that only network operators / council members need (system freeze + upgrade flow,
-system-delete/-undelete of entities, Dynamic Address Book node operations) and keeps
-them out of the surface that "normal" applications consume. The module depends on
-`consensus-node-client` (it reuses `Transaction<$$Receipt>`, the SPI, signing /
-packing lifecycle, and base types) but is not imported by it — the dependency edge
-is strictly `consensus-node-admin-client --> consensus-node-client`.
+The admin module (privileged freeze / system-delete / Dynamic Address Book operations, kept out of
+the surface normal apps consume; depends on `consensus-node-client` but is not imported by it) is
+specified. Remaining open items, each tracked in its file's *Questions & Comments*:
 
-Rationale:
-
-- These transactions require privileged signing keys (the network's
-  system-admin / freeze / address-book keys) and have no use case for typical
-  end-user apps or wallets.
-- Splitting them into a separate artifact lets normal app authors take a smaller
-  dependency and removes admin-only types from the documentation surface they
-  browse.
-- The split is the natural place to land the admin-only queries
-  (`NodeAddressBookQuery`, `NetworkVersionInfoQuery` — now specified in §2.3) as the
-  module grows.
-
-### 2.1 System / network admin
-
-`FreezeTransaction` (`FREEZE_ONLY`, `PREPARE_UPGRADE`, `FREEZE_UPGRADE`,
-`FREEZE_ABORT`, `TELEMETRY_UPGRADE`) — :white_check_mark:
-([`transactions-freeze.md`](spec/consensus-node-admin-client/transactions-freeze.md)).
-`SystemDelete`, `SystemUndelete` — :white_check_mark:
-([`transactions-system.md`](spec/consensus-node-admin-client/transactions-system.md)).
-Open: typed `NetworkAdminKey` reference, splitting the `freezeType` /
-`@@oneOf(fileId, contractId)` payloads into concrete subtypes — tracked in each file's
-*Questions & Comments*.
-
-### 2.2 Dynamic Address Book (HIP-869 / HIP-1064)
-
-`NodeCreate`, `NodeUpdate`, `NodeDelete` with `gossipEndpoints`,
-`serviceEndpoints`, `gossipCaCertificate`, `grpcCertificateHash`,
-`grpcWebProxyEndpoint` (HIP-1046) — :white_check_mark:
-([`transactions-nodes.md`](spec/consensus-node-admin-client/transactions-nodes.md)).
-Open: typed `NodeId` / `X509Certificate` placeholders — tracked in that file's
-*Questions & Comments*. (Typed `IpAddress` has landed in `base/ledger.md`.)
-
-### 2.3 Admin-side queries
-
-| Query | V3 spec |
-| --- | --- |
-| `NetworkVersionInfoQuery` (free) | :white_check_mark: ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md)) |
-| `NodeAddressBookQuery` (paid — backed by `FileGetContents` on the address-book file) | :white_check_mark: ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md)) |
-
-The two queries were originally listed under §1.8 (`consensus-node-client` queries) but
-moved to this module along with the DAB transactions: their natural caller is the same
-operator / tooling code that issues `NodeCreate` / `NodeUpdate`. Open: extract
-`SemanticVersion` into `base/common` once §3.1 lands a base type; surface tombstoned
-node-address entries explicitly — tracked in that file's *Questions & Comments*.
+- **System / network admin** ([`transactions-freeze.md`](spec/consensus-node-admin-client/transactions-freeze.md),
+  [`transactions-system.md`](spec/consensus-node-admin-client/transactions-system.md)): typed
+  `NetworkAdminKey` reference; splitting the `freezeType` / `@@oneOf(fileId, contractId)` payloads
+  into concrete subtypes.
+- **Dynamic Address Book** ([`transactions-nodes.md`](spec/consensus-node-admin-client/transactions-nodes.md)):
+  typed `NodeId` / `X509Certificate` placeholders. (Typed `IpAddress` has landed in `base/ledger.md`.)
+- **Admin-side queries** ([`queries-network.md`](spec/consensus-node-admin-client/queries-network.md)):
+  extract `SemanticVersion` into `base/common` once §3.1 lands a base type; surface tombstoned
+  node-address entries explicitly.
 
 ---
 
@@ -238,77 +134,13 @@ node-address entries explicitly — tracked in that file's *Questions & Comments
 
 ### 3.1 Identifier types
 
-The address hierarchy is **now landed** in
-[`base/ledger.md`](spec/base/ledger.md). The driving insight is that every
-HAPI entity id is `(shard, realm, X)` and only the selector `X` varies:
-for tokens / topics / files / schedules it is a single `num`; for
-contracts it is `num` xor a 20-byte EVM address; for accounts it is `num`
-xor an EVM address xor a HIP-32 key alias. That observation drove the
-three-level hierarchy: `BaseAddress` factors `(shard, realm, checksum)`;
-`EvmCapableAddress` adds the two `@@nullable` slots shared by accounts
-and contracts; the concrete `ContractId` / `AccountId` add only their
-own `@@oneOf` constraint (and `AccountId` adds the HIP-32 alias slot).
-Strictly Liskov-clean, no meta-language extension required.
-
-#### Concrete identifier types landed in `base/ledger.md`
-
-| Type | Shape | Used for |
-| --- | --- | --- |
-| `BaseAddress` (abstract) | `shard`, `realm`, `checksum`, `@@nullable num: uint64` + common methods (`toString`, `validateChecksum`, ...) | parent of every concrete address kind below; the `num` slot is `@@nullable` here because EVM-only `ContractId` / `AccountId` may not carry one |
-| `Address` extends `BaseAddress` | `@@override num: uint64` — **narrows** the inherited nullable `num` to non-null | tokens, topics, files, schedules — the typed identifier already referenced throughout the spec |
-| `EvmCapableAddress` (abstract) extends `BaseAddress` | adds `@@nullable evmAddress: EvmAddress`; `num` is inherited as `@@nullable`; no `@@oneOf` of its own | parent of every address that can be EVM-addressed |
-| `ContractId` extends `EvmCapableAddress` | structurally empty body; only adds `@@oneOf(num, evmAddress)` — mirrors HAPI `ContractID` exactly | smart contracts |
-| `AccountId` extends `EvmCapableAddress` | adds `@@nullable alias: bytes` (HIP-32 key alias) + `@@oneOf(num, evmAddress, alias)`; splits HAPI's opaque `AccountID.alias: bytes` into typed `evmAddress` (HIP-583, inherited) and `alias` (HIP-32) so the type system says which form is held | accounts |
-| `EvmAddress` | 20-byte raw value, NOT a `(shard, realm, num)` tuple | EVM-side identifiers; the `evmAddress` slot inside `EvmCapableAddress`; stand-alone return type wherever a flat EVM address appears on its own |
-
-LSP-cleanliness comes from never weakening a parent's contract — every
-child only **tightens**: `Address` narrows the inherited `@@nullable num`
-to non-null via `@@override` (see *Narrowing inherited nullability* in
-[`guidelines/api-guideline.md`](guidelines/api-guideline.md)); `ContractId`
-and `AccountId` add their own `@@oneOf` constraints on top of an
-`EvmCapableAddress` that carries none. Tightening is the safe direction;
-no parent invariant is ever relaxed. The meta-language did acquire one
-small addition (the `@@override` annotation + nullability-narrowing rule)
-to support `Address`'s `num`-narrowing, with per-language mappings in
-`api-best-practices-java.md`, `api-best-practices-rust.md`, and
-`api-best-practices-js.md`.
-
-`DelegateContractId` is **not** an identifier type. It is a `Key`
-sum-type variant that wraps a `ContractId` with the additional semantic
-"may be invoked through a delegated call". See §3.2.
-
-#### Call-site migration to the typed identifiers — landed
-
-The typed `AccountId` / `ContractId` / `EvmAddress` are now used
-throughout the spec:
-
-- Account-typed fields (`accountId`, `treasuryAccountId`,
-  `autoRenewAccount`, `payerAccountId`, `stakedAccountId`,
-  `owner` / `ownerId`, `sender` / `receiver`, `transferAccountId`,
-  `from`/`toAccountId`, `ownerAccountId` / `spenderAccountId` /
-  `delegatingSpender`, allowance owner / spender refs,
-  `TransactionId.accountId`, `Account.accountId`, `NodeBody.node`,
-  `NodeSignature.node`, `NetworkSetting` consensus-node fee account,
-  `ConsensusNode.account`, `QueryResponse.answeredBy`) carry `AccountId`.
-- Contract-typed fields (`contractId` on `mirrornode.contract.Contract`,
-  `enterprise.service.contract.Contract`, `AccountBalanceQuery.contractId`,
-  `SystemDelete/UndeleteTransaction.contractId`,
-  `SmartContractService` call/find methods) carry `ContractId`.
-- Flat EVM-address values (`AccountInfo.evmAddress` on consensus and
-  mirror-node side, `Contract.evmAddress` on mirror-node side,
-  `ofAddress` parameter factory on the contract service) carry the
-  typed `EvmAddress`.
-- `ZERO_ACCOUNT_ID` and `ZERO_CONTRACT_ID` clear-sentinels were added
-  to [`base/ledger.md`](spec/base/ledger.md) alongside the existing
-  `ZERO_ADDRESS`, for the same clear-on-update pattern.
-
-Token / topic / file / schedule ids remain `Address` per the design
-decision recorded above. Some fields in
-[`mirror-node-contract.md`](spec/mirror-node-client/mirror-node-contract.md)
-that historically used raw `string` for entity references (`obtainerId`,
-`proxyAccountId`, `fileId`) are flagged with `// TODO` markers — those
-predate the typed-identifier work and want a separate cleanup that
-moves them to `AccountId` / `Address` rather than `string`.
+The address hierarchy (`BaseAddress` → `EvmCapableAddress` → `Address` / `ContractId` /
+`AccountId`, plus the standalone `EvmAddress`) has **landed** in
+[`base/ledger.md`](spec/base/ledger.md), together with the call-site migration to these typed
+identifiers and the `ZERO_ADDRESS` / `ZERO_ACCOUNT_ID` / `ZERO_CONTRACT_ID` clear-sentinels (see
+[ADR-0003](docs/adr/0003-three-level-address-hierarchy-with-nullability-narrowing.md)). Some
+`mirror-node-contract.md` fields (`obtainerId`, `proxyAccountId`, `fileId`) still use raw `string`
+and carry `// TODO` markers for migration to `AccountId` / `Address`.
 
 #### Composite identifier types — still missing as **types**
 
@@ -335,30 +167,17 @@ missing as typed values:
 
 ### 3.2 Keys
 
+The HAPI authorization-key model has landed as the [`authority`](spec/base/authority.md) namespace
+(`Authority` sum type — see [ADR-0004](docs/adr/0004-authority-authorization-sum-type.md)); all key
+fields across the specs are now typed `Authority`. Two follow-ups remain open: `@@sealed` must be
+added to the meta-language (the spec uses it ahead of that), and key *clearing* (HIP-540) is
+deferred to a future write-side `KeyUpdate` type. Still missing:
+
 | API in v2 | V3 spec |
 | --- | --- |
-| `Key` (HAPI sum type over public key / `ContractID` / `DelegatableContractID` / `KeyList` / `ThresholdKey`) | :white_check_mark: modelled as `Authority` ([`authority.md`](spec/base/authority.md), [ADR-0004](docs/adr/0004-authority-authorization-sum-type.md)) |
-| `KeyList` (n-of-n composition) | :white_check_mark: `AuthorityList` with `threshold == children.size()` |
-| `ThresholdKey` (m-of-n composition) | :white_check_mark: `AuthorityList` with `threshold < children.size()` |
 | `Mnemonic` (BIP-39 12 / 24-word + legacy 22-word, `toStandardEd25519PrivateKey`, `toStandardECDSAsecp256k1PrivateKey`) | :x: |
 | `PublicKey.toEvmAddress()` / `toAccountId()` | :x: |
 | HSM signer function (`UnaryFunction<byte[], byte[]>`) | :warning: abstracted via `TransactionSigner` |
-
-The HAPI authorization-key model is now the [`authority`](spec/base/authority.md) namespace:
-`Authority` is a sealed sum type with `PublicKeyAuthority`, `ContractAuthority`, and a single
-recursive composite `AuthorityList` (n-of-n when `threshold == children.size()`, m-of-n
-otherwise). It covers what the old `PublicKey` / `list<PublicKey>` placeholders could not —
-contract-controlled authority, m-of-n custody, and nesting. The design and the rejected
-alternatives are recorded in
-[ADR-0004](docs/adr/0004-authority-authorization-sum-type.md).
-
-All key fields across the specs (account `key`; the eight token keys; topic `adminAuthority` /
-`submitAuthority` / `feeScheduleAuthority` / `feeExemptAuthorities`; contract `adminAuthority`; node `adminAuthority`; file
-`key`; and their read-side mirrors in `queries-*` and `mirror-node-*`) have been retyped from the
-placeholder to `Authority`. Two items remain open: `@@sealed` must still be added to the
-meta-language (the spec uses it ahead of that), and key *clearing* (HIP-540) is deferred to a
-future write-side `KeyUpdate` type rather than being expressed as an `Authority` value — both
-tracked as ADR-0004 follow-ups.
 
 ### 3.3 Custom fees (HTS + HIP-991)
 
@@ -617,14 +436,12 @@ setup flexibility:
 
 ## 8. Suggested prioritization
 
-1. **SDK parity (must-have):** `TransferTransaction` (HBAR), token-service
-   transactions (`Create` / `Associate` / `Mint` / `Burn` / transfer),
-   topic transactions (`Create` / `Update` / `Delete` / `SubmitMessage`),
-   file transactions, contract transactions + `EthereumTransaction`, the
-   remaining common queries (contract / schedule info queries; account / file /
-   token / topic info queries have landed). Query base abstractions and the
-   account / file / token / topic concrete queries already landed; pattern is
-   established for the rest.
+1. **SDK parity (must-have):** the remaining write transactions — contract
+   transactions + `EthereumTransaction`, `TopicMessageSubmit`, the token admin
+   operations (wipe / freeze / KYC / pause / fee-schedule) — and the remaining
+   common queries (contract / schedule info). The transaction lifecycle, transfers,
+   token/topic/file core, and the account/file/token/topic info queries have landed,
+   so the pattern is established for the rest.
 2. **Modern HIPs:** Schedule (HIP-755), airdrops (HIP-904), DAB node ops
    (HIP-869 / HIP-1046 — land in `consensus-node-admin-client`, §2),
    custom fees on topics (HIP-991), batch (HIP-551),
