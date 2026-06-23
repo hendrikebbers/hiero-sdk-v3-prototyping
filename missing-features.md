@@ -288,13 +288,6 @@ codes should ship in the standard mapping. Also missing: `TokenKeyValidation`
 
 ### 4.2 Missing endpoints per existing domain
 
-**Accounts** — missing:
-
-- `GET /accounts/{id}/rewards`
-- `GET /accounts/{id}/allowances/{crypto|tokens|nfts}`
-- `GET /accounts/{id}/airdrops/{outstanding|pending}` (HIP-904)
-- `GET /balances` (top-level balance query)
-
 **Contracts** — missing:
 
 - `GET /contracts/{id}/results`, `/results/{txIdOrHash}`,
