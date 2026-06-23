@@ -16,7 +16,7 @@ static JSON files baked into a release. Each consensus node is identified by a n
   used to terminate mutual TLS on the gossip channel.
 - A **gRPC certificate hash** (`grpcCertificateHash`) — SHA-384 of the certificate served
   on the public gRPC endpoints; clients pin against this hash.
-- An **`adminKey`** — required to update or delete the node entry. There is no system-key
+- An **`adminAuthority`** — required to update or delete the node entry. There is no system-key
   override here; rotating the admin key requires both the old and new keys.
 - A **`declineReward`** flag — when `true`, the node opts out of receiving staking rewards.
 - An optional **`grpcWebProxyEndpoint`** (HIP-1046) — a gRPC-web proxy endpoint that
@@ -35,9 +35,9 @@ tombstoned state so that historical references still resolve.
 
 | Transaction               | Signers required                                                                                                                                              |
 |---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `NodeCreateTransaction`   | the *payer*; **and** the address-book *council* signer; **and** the new `adminKey` (anti-spoofing); **and** the `accountId`'s key (so the council cannot bind another party's account to a node) |
-| `NodeUpdateTransaction`   | the *payer*; **and** the node's current `adminKey`; **and**, if `adminKey` itself is being rotated, the *new* key; **and**, if `accountId` is changed, the new account's key |
-| `NodeDeleteTransaction`   | the *payer*; **and** the node's current `adminKey`                                                                                                            |
+| `NodeCreateTransaction`   | the *payer*; **and** the address-book *council* signer; **and** the new `adminAuthority` (anti-spoofing); **and** the `accountId`'s key (so the council cannot bind another party's account to a node) |
+| `NodeUpdateTransaction`   | the *payer*; **and** the node's current `adminAuthority`; **and**, if `adminAuthority` itself is being rotated, the *new* key; **and**, if `accountId` is changed, the new account's key |
+| `NodeDeleteTransaction`   | the *payer*; **and** the node's current `adminAuthority`                                                                                                            |
 
 The council signer is configured at the consensus-node level and reaches the SDK through
 `TransactionSigner` like any other externally held key.
@@ -85,7 +85,7 @@ fails with `INVALID_ENDPOINT`.
 ```
 namespace consensusnode.admin.nodes
 requires {AccountId, IpAddress} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Receipt, Transaction} from consensusnode.transactions
 
 // One reachable endpoint on a consensus node. Exactly one of ipAddress or domainName must
@@ -107,7 +107,7 @@ NodeCreateTransaction extends Transaction<NodeCreateReceipt> {
     @@immutable @@minLength(1) serviceEndpoints: list<ServiceEndpoint>   // public gRPC endpoints for client transactions
     @@immutable gossipCaCertificate: bytes                               // X.509 DER bytes of the certificate that terminates mutual TLS for gossip
     @@immutable grpcCertificateHash: bytes                               // SHA-384 of the certificate served on serviceEndpoints; clients pin against this
-    @@immutable adminKey: PublicKey                                      // required to update / delete the node; must co-sign this create
+    @@immutable adminAuthority: Authority                                    // required to update / delete the node; must co-sign this create
     @@immutable @@default(false) declineReward: bool                     // true → node opts out of staking rewards
     @@immutable @@nullable grpcWebProxyEndpoint: ServiceEndpoint         // optional gRPC-web proxy endpoint (HIP-1046)
 }
@@ -129,7 +129,7 @@ NodeUpdateTransaction extends Transaction<NodeUpdateReceipt> {
     @@immutable @@nullable serviceEndpoints: list<ServiceEndpoint>       // replaces the entire list when set
     @@immutable @@nullable gossipCaCertificate: bytes
     @@immutable @@nullable grpcCertificateHash: bytes
-    @@immutable @@nullable adminKey: PublicKey                           // when set, the new key must also sign
+    @@immutable @@nullable adminAuthority: Authority                         // when set, the new key must also sign
     @@immutable @@nullable declineReward: bool
     @@immutable @@nullable grpcWebProxyEndpoint: ServiceEndpoint
 }
@@ -157,7 +157,7 @@ NodeDeleteReceipt extends Receipt {
 ```
 HieroClient        client       = ...;   // council operator; signer wraps council HSM
 Account            nodeOperator = ...;   // owns the new accountId, must co-sign
-TransactionSigner  adminSigner  = ...;   // wraps the new node's adminKey
+TransactionSigner  adminSigner  = ...;   // wraps the new node's adminAuthority
 
 PackedTransaction<...> packed = new NodeCreateTransaction()
     .accountId(nodeOperator.accountId)
@@ -170,10 +170,10 @@ PackedTransaction<...> packed = new NodeCreateTransaction()
     ])
     .gossipCaCertificate(gossipCertDer)
     .grpcCertificateHash(grpcCertSha384)
-    .adminKey(newAdminPublicKey)
+    .adminAuthority(Authority.of(newAdminPublicKey))
     .signWithOperator(client)        // council + payer
     .sign(nodeOperator)              // accountId binding
-    .sign(adminSigner);              // adminKey binding (anti-spoofing)
+    .sign(adminSigner);              // adminAuthority binding (anti-spoofing)
 
 int64 nodeId = packed.submit(client).queryReceipt().nodeId;
 ```
@@ -187,7 +187,7 @@ new NodeUpdateTransaction()
         new ServiceEndpoint(null, "node7-new.consensus.example", 50211),
     ])
     .signWithOperator(client)        // payer
-    .sign(adminSigner);              // current adminKey
+    .sign(adminSigner);              // current adminAuthority
 ```
 
 ### Rotate the admin key
@@ -195,10 +195,10 @@ new NodeUpdateTransaction()
 ```
 PackedTransaction<...> packed = new NodeUpdateTransaction()
     .nodeId(nodeId)
-    .adminKey(newAdminPublicKey)
+    .adminAuthority(Authority.of(newAdminPublicKey))
     .signWithOperator(client)        // payer
-    .sign(currentAdminSigner)        // current adminKey
-    .sign(newAdminSigner);           // new adminKey
+    .sign(currentAdminSigner)        // current adminAuthority
+    .sign(newAdminSigner);           // new adminAuthority
 
 packed.submit(client);
 ```

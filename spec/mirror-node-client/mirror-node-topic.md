@@ -7,23 +7,23 @@
 ```
 namespace mirrornode.topic
 requires {Address, AccountId, MirrorNode, TransactionId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {FixedFee} from mirrornode.common
 requires {Page} from common
 
 @@finalType
 Topic {
     @@immutable topicId: Address
-    @@immutable @@nullable adminKey: PublicKey
-    @@immutable @@nullable submitKey: PublicKey
-    @@immutable @@nullable feeScheduleKey: PublicKey
+    @@immutable @@nullable adminAuthority: Authority
+    @@immutable @@nullable submitAuthority: Authority
+    @@immutable @@nullable feeScheduleAuthority: Authority
     @@immutable @@nullable autoRenewAccount: AccountId
     @@immutable autoRenewPeriod: seconds
     @@immutable createdTimestamp: zonedDateTime
     @@immutable deleted: bool
     @@immutable memo: string
     @@immutable fixedFees: list<FixedFee>
-    @@immutable @@nullable feeExemptKeyList: list<PublicKey>
+    @@immutable @@nullable feeExemptAuthorities: list<Authority>
     @@immutable fromTimestamp: zonedDateTime
     @@immutable toTimestamp: zonedDateTime
 }

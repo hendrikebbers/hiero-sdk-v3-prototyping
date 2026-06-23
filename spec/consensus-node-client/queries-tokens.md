@@ -42,7 +42,7 @@ introducing three near-identical enums — see *Questions & Comments*.
 ```
 namespace consensusnode.queries.tokens
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {TokenType, TokenSupplyType} from token
 requires {PaidQuery} from consensusnode.queries
 
@@ -68,19 +68,19 @@ type TokenInfo {
 
     // The eight optional keys (see transactions-tokens.md "Token keys"). A null key means the
     // capability was never granted at create and can never be added.
-    @@immutable @@nullable adminKey: PublicKey                  // controls update / delete; null → immutable token
-    @@immutable @@nullable supplyKey: PublicKey                 // controls mint / burn; null → fixed supply
-    @@immutable @@nullable kycKey: PublicKey                    // controls KYC grant / revoke; null → KYC disabled
-    @@immutable @@nullable freezeKey: PublicKey                 // controls freeze / unfreeze; null → no freeze
-    @@immutable @@nullable wipeKey: PublicKey                   // controls wipe; null → wipe disabled
-    @@immutable @@nullable pauseKey: PublicKey                  // controls pause / unpause; null → unpausable
-    @@immutable @@nullable feeScheduleKey: PublicKey            // controls custom-fee schedule updates; null → fees immutable
-    @@immutable @@nullable metadataKey: PublicKey               // controls per-serial NFT metadata updates (HIP-657); null → metadata immutable
+    @@immutable @@nullable adminAuthority: Authority                  // controls update / delete; null → immutable token
+    @@immutable @@nullable supplyAuthority: Authority                 // controls mint / burn; null → fixed supply
+    @@immutable @@nullable kycAuthority: Authority                    // controls KYC grant / revoke; null → KYC disabled
+    @@immutable @@nullable freezeAuthority: Authority                 // controls freeze / unfreeze; null → no freeze
+    @@immutable @@nullable wipeAuthority: Authority                   // controls wipe; null → wipe disabled
+    @@immutable @@nullable pauseAuthority: Authority                  // controls pause / unpause; null → unpausable
+    @@immutable @@nullable feeScheduleAuthority: Authority            // controls custom-fee schedule updates; null → fees immutable
+    @@immutable @@nullable metadataAuthority: Authority               // controls per-serial NFT metadata updates (HIP-657); null → metadata immutable
 
     // Tri-state status collapsed to nullable bool: null → corresponding key unset (not applicable).
-    @@immutable @@nullable defaultFreezeStatus: bool            // true → newly associated accounts start FROZEN; null → no freezeKey
-    @@immutable @@nullable defaultKycStatus: bool               // true → newly associated accounts start KYC-granted; null → no kycKey
-    @@immutable @@nullable paused: bool                         // true → token is currently paused; null → no pauseKey
+    @@immutable @@nullable defaultFreezeStatus: bool            // true → newly associated accounts start FROZEN; null → no freezeAuthority
+    @@immutable @@nullable defaultKycStatus: bool               // true → newly associated accounts start KYC-granted; null → no kycAuthority
+    @@immutable @@nullable paused: bool                         // true → token is currently paused; null → no pauseAuthority
 }
 
 // Paid query for the metadata snapshot of a token (fungible or NFT collection). Does not return
@@ -125,9 +125,9 @@ if (info.deleted) {
     return;                                     // token no longer usable; treat remaining fields as historical
 }
 
-int64     supply  = info.totalSupply;
-PublicKey admin   = info.adminKey;              // null → immutable token
-PublicKey supply2 = info.supplyKey;             // null → fixed supply
+int64       supply  = info.totalSupply;
+Authority admin   = info.adminAuthority;            // null → immutable token
+Authority supply2 = info.supplyAuthority;           // null → fixed supply
 ```
 
 ### Distinguish fungible from NFT
@@ -173,12 +173,10 @@ combine it with `maxQueryPayment` for a hard ceiling. See
 
 ## Questions & Comments
 
-- **All key fields are typed as `PublicKey`, not `Key`.** Same placeholder typing as on the
-  write side; see [`transactions-tokens.md`](transactions-tokens.md) *Questions & Comments* for
-  why a single `PublicKey` cannot express the recursive `Key` sum type that HAPI actually returns
-  (entries may be `KeyList`, `ThresholdKey`, `ContractID`, …). Tracked in
-  [`missing-features.md`](../../missing-features.md) section 3.2 — the `Key` row is a
-  prerequisite for retyping all eight key fields here.
+- **All eight key fields are the `Authority` authorization type.** Each is an `Authority`
+  (single key / contract / m-of-n) — see [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md)
+  and [`authority.md`](../base/authority.md). This resolves the former `PublicKey` placeholder
+  that could not express the recursive authorization requirement HAPI returns.
 
 - **`tokenId` / `nftId` are the generic `Address` placeholder.** Token / NFT ids are not yet
   promoted to typed `TokenId` / `NftId` (token id + serial) identifiers — tracked in

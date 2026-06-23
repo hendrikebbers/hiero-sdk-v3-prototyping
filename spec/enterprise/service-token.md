@@ -15,7 +15,7 @@ created with a supply key.
 namespace enterprise.service.token
 requires {Page} from common
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Token, TokenInfo, Balance} from mirrornode.token
 requires {Session} from enterprise.service
 
@@ -24,9 +24,9 @@ FungibleTokenService {
     // Create a fungible token. The treasury defaults to the operator account; a supply key enables mint/burn.
     @@throws(service-error) Address createToken(name: string, symbol: string)
 
-    @@throws(service-error) Address createToken(name: string, symbol: string, supplyKey: PublicKey)
+    @@throws(service-error) Address createToken(name: string, symbol: string, supplyAuthority: Authority)
 
-    @@throws(service-error) Address createToken(name: string, symbol: string, treasuryAccount: AccountId, supplyKey: PublicKey)
+    @@throws(service-error) Address createToken(name: string, symbol: string, treasuryAccount: AccountId, supplyAuthority: Authority)
 
     // Associate an account with one or more tokens so it can hold them
     @@throws(service-error) void associateToken(accountId: AccountId, tokenIds: Address...)
@@ -65,3 +65,9 @@ FungibleTokenService createService(session: Session)
 ```
 
 ## Questions & Comments
+
+- The `supplyAuthority` parameters of `createToken` accept the full `Authority` type, so multisig (m-of-n) and
+  contract-controlled supply keys work at the enterprise layer too — not just single public keys. See
+  [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md) and [`authority.md`](../base/authority.md).
+- Open option: simple single-key convenience overloads taking a `PublicKey` directly could be added later if the
+  enterprise layer wants extra ergonomics for the common single-signer case.

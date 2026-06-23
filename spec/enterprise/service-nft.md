@@ -15,7 +15,7 @@ opaque `bytes` payload.
 namespace enterprise.service.nft
 requires {Page} from common
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Nft, NftMetadata} from mirrornode.nft
 requires {Session} from enterprise.service
 
@@ -25,9 +25,9 @@ NftService {
     // The treasury defaults to the operator account; a supply key enables minting.
     @@throws(service-error) NftMetadata createNftType(name: string, symbol: string)
 
-    @@throws(service-error) NftMetadata createNftType(name: string, symbol: string, supplyKey: PublicKey)
+    @@throws(service-error) NftMetadata createNftType(name: string, symbol: string, supplyAuthority: Authority)
 
-    @@throws(service-error) NftMetadata createNftType(name: string, symbol: string, treasuryAccount: AccountId, supplyKey: PublicKey)
+    @@throws(service-error) NftMetadata createNftType(name: string, symbol: string, treasuryAccount: AccountId, supplyAuthority: Authority)
 
     // Associate an account with one or more NFT types so it can hold them
     @@throws(service-error) void associateNft(accountId: AccountId, tokenIds: Address...)
@@ -95,3 +95,9 @@ NftService createService(session: Session)
 ```
 
 ## Questions & Comments
+
+- The `supplyAuthority` parameters of `createNftType` accept the full `Authority` type, so multisig (m-of-n) and
+  contract-controlled supply keys work at the enterprise layer too — not just single public keys. See
+  [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md) and [`authority.md`](../base/authority.md).
+- Open option: simple single-key convenience overloads taking a `PublicKey` directly could be added later if the
+  enterprise layer wants extra ergonomics for the common single-signer case.

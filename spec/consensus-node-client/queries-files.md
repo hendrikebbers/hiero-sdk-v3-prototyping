@@ -30,7 +30,7 @@ empty `contents` payload as authoritative evidence of deletion.
 ```
 namespace consensusnode.queries.files
 requires {Address} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {PaidQuery} from consensusnode.queries
 
 // Raw byte payload of a file. Returned by FileContentsQuery.
@@ -52,7 +52,7 @@ type FileInfo {
     @@immutable size: int64                            // current file size in bytes
     @@immutable expirationTime: zonedDateTime          // when the file expires
     @@immutable deleted: bool                          // true if the file has been deleted
-    @@immutable keys: list<PublicKey>                  // current write-access key list (n-of-n on modification)
+    @@immutable @@nullable authority: Authority            // write-access authorization (null → immutable file)
     @@immutable @@nullable fileMemo: string
 }
 
@@ -113,12 +113,11 @@ combine it with `maxQueryPayment` for a hard ceiling. See
 
 ## Questions & Comments
 
-- **`FileInfo.keys` is `list<PublicKey>`, not a `Key` tree.** Same placeholder typing as on
-  the write side; see [`transactions-files.md`](transactions-files.md) *Questions & Comments*
-  for why a flat list of public keys cannot represent the recursive `Key` sum type that HAPI
-  actually returns (entries may be `KeyList`, `ThresholdKey`, `ContractID`, …). Tracked in
-  [`missing-features.md`](../../missing-features.md) section 2.2 — the `Key` row is a
-  prerequisite for retyping this field.
+- **`FileInfo.key` is the `Authority` authorization type.** The single write-access
+  authorization requirement (HAPI's `KeyList`) is modeled as one `Authority` (single key /
+  contract / m-of-n) — see [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md)
+  and [`authority.md`](../base/authority.md). This resolves the former `list<PublicKey>`
+  placeholder that could not express the recursive authorization requirement HAPI returns.
 
 - **No `ledgerId` on `FileInfo`.** HAPI's `FileGetInfoResponse.FileInfo` carries a
   `ledger_id`, but the V3 `FileInfo` (and `AccountInfo` in

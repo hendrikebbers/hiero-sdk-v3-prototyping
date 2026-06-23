@@ -8,13 +8,13 @@
 namespace mirrornode.contract
 
 requires {AccountId, ContractId, EvmAddress, MirrorNode} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Page} from common
 
 @@finalType
 Contract {
     @@immutable contractId: ContractId
-    @@immutable @@nullable adminKey: PublicKey
+    @@immutable @@nullable adminAuthority: Authority
     @@immutable @@nullable autoRenewAccount: AccountId
     @@immutable autoRenewPeriod: seconds
     @@immutable createdTimestamp: zonedDateTime

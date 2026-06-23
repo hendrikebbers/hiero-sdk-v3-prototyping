@@ -216,7 +216,7 @@ HieroClient client = ...;
 
 Response<AccountCreateReceipt> response = new AccountCreateTransaction()
     .initialBalance(...)
-    .key(...)
+    .authority(...)
     .signWithOperatorAndSubmit(client);
 
 AccountCreateReceipt receipt = response.queryReceipt();
@@ -235,7 +235,7 @@ list<AccountId> nodes = client.ledger.networkSetting().getConsensusNodes()
                             .map(n -> n.address);
 
 PackedTransaction<...> packed = new AccountCreateTransaction()
-    .key(...)
+    .authority(...)
     .sign(payer, nodes);
 
 Response<AccountCreateReceipt> response = packed.submit(client);

@@ -38,14 +38,14 @@ state.
 
 | Key            | Grants the authority to                                                                          |
 |----------------|--------------------------------------------------------------------------------------------------|
-| `adminKey`     | update token metadata (`TokenUpdate`) and delete the token (`TokenDelete`). Unset → immutable.   |
-| `supplyKey`    | mint and burn units (`TokenMint`, `TokenBurn`). Unset → fixed supply after creation.             |
-| `kycKey`       | grant / revoke KYC (`TokenGrantKyc`, `TokenRevokeKyc`). Unset → KYC concept disabled.            |
-| `freezeKey`    | freeze / unfreeze accounts for this token (`TokenFreeze`, `TokenUnfreeze`). Unset → no freeze.   |
-| `wipeKey`      | wipe units from a non-treasury account (`TokenWipe`). Unset → wipe disabled.                     |
-| `pauseKey`     | pause / unpause every operation on the token (`TokenPause`, `TokenUnpause`). Unset → unpausable. |
-| `feeScheduleKey` | update the token's custom fee schedule (`TokenFeeScheduleUpdate`). Unset → fees immutable.     |
-| `metadataKey`  | update NFT-level metadata after mint (`TokenUpdateNfts`, HIP-657). Unset → metadata immutable.   |
+| `adminAuthority`     | update token metadata (`TokenUpdate`) and delete the token (`TokenDelete`). Unset → immutable.   |
+| `supplyAuthority`    | mint and burn units (`TokenMint`, `TokenBurn`). Unset → fixed supply after creation.             |
+| `kycAuthority`       | grant / revoke KYC (`TokenGrantKyc`, `TokenRevokeKyc`). Unset → KYC concept disabled.            |
+| `freezeAuthority`    | freeze / unfreeze accounts for this token (`TokenFreeze`, `TokenUnfreeze`). Unset → no freeze.   |
+| `wipeAuthority`      | wipe units from a non-treasury account (`TokenWipe`). Unset → wipe disabled.                     |
+| `pauseAuthority`     | pause / unpause every operation on the token (`TokenPause`, `TokenUnpause`). Unset → unpausable. |
+| `feeScheduleAuthority` | update the token's custom fee schedule (`TokenFeeScheduleUpdate`). Unset → fees immutable.     |
+| `metadataAuthority`  | update NFT-level metadata after mint (`TokenUpdateNfts`, HIP-657). Unset → metadata immutable.   |
 
 The `metadata` field on the token itself (and on individual NFT serials) is opaque bytes — typical
 uses are an IPFS CID, an HTTPS URL, or an inlined JSON manifest. The token's `decimals`,
@@ -81,23 +81,23 @@ A token's lifecycle is:
 
 | Transaction       | Signers required                                                                                                                                                                                                                                                                                                |
 |-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `TokenCreate`     | the *payer*; **and** the `treasuryAccountId` (auto-association of the treasury implicitly binds the account); **and** the `adminKey` if it is set (anti-spoofing: cannot bind another party's key as admin without their consent); **and** the `autoRenewAccount` if it is set and differs from the payer / treasury. Other keys (`supplyKey`, `kycKey`, ...) do **not** need to sign creation — they gate only future permissioned operations. |
-| `TokenUpdate`     | the *payer*; **and** the token's *current* `adminKey`; **and**, if a key field is being rotated to a new value, the *new* key (anti-spoofing); **and**, if `treasuryAccountId` is being changed, both the *current* and the *new* treasury accounts; **and**, if `autoRenewAccount` is being changed, the new account. |
-| `TokenDelete`     | the *payer*; **and** the token's current `adminKey` (an immutable token — `adminKey` unset — cannot be deleted; the request fails with `TOKEN_IS_IMMUTABLE`).                                                                                                                                                   |
+| `TokenCreate`     | the *payer*; **and** the `treasuryAccountId` (auto-association of the treasury implicitly binds the account); **and** the `adminAuthority` if it is set (anti-spoofing: cannot bind another party's key as admin without their consent); **and** the `autoRenewAccount` if it is set and differs from the payer / treasury. Other keys (`supplyAuthority`, `kycAuthority`, ...) do **not** need to sign creation — they gate only future permissioned operations. |
+| `TokenUpdate`     | the *payer*; **and** the token's *current* `adminAuthority`; **and**, if a key field is being rotated to a new value, the *new* key (anti-spoofing); **and**, if `treasuryAccountId` is being changed, both the *current* and the *new* treasury accounts; **and**, if `autoRenewAccount` is being changed, the new account. |
+| `TokenDelete`     | the *payer*; **and** the token's current `adminAuthority` (an immutable token — `adminAuthority` unset — cannot be deleted; the request fails with `TOKEN_IS_IMMUTABLE`).                                                                                                                                                   |
 | `TokenAssociate`  | the *payer*; **and** the `accountId` being associated (the account opting in to hold the token). The token's keys are **not** consulted — anyone may associate to any token.                                                                                                                                    |
 | `TokenDissociate` | the *payer*; **and** the `accountId` being dissociated.                                                                                                                                                                                                                                                         |
-| `TokenMint`       | the *payer*; **and** the token's `supplyKey` (mint is impossible if `supplyKey` is unset — `TOKEN_HAS_NO_SUPPLY_KEY`).                                                                                                                                                                                          |
-| `TokenBurn`       | the *payer*; **and** the token's `supplyKey`. Burns always draw from the treasury account; the treasury itself does not need to co-sign.                                                                                                                                                                        |
+| `TokenMint`       | the *payer*; **and** the token's `supplyAuthority` (mint is impossible if `supplyAuthority` is unset — `TOKEN_HAS_NO_SUPPLY_KEY`).                                                                                                                                                                                          |
+| `TokenBurn`       | the *payer*; **and** the token's `supplyAuthority`. Burns always draw from the treasury account; the treasury itself does not need to co-sign.                                                                                                                                                                        |
 
 When the operator holds every required key (e.g. operator = treasury = admin) `signWithOperatorAndSubmit(client)`
 is sufficient. Multi-key flows go through the `signWithOperator(client).sign(...)` pattern shown
 in [`transactions-accounts.md`](transactions-accounts.md).
 
 The general rule (as in topics): a key field on a create transaction must sign **if** binding it
-would grant that key authority over a real asset (`adminKey`, `treasuryAccountId`,
+would grant that key authority over a real asset (`adminAuthority`, `treasuryAccountId`,
 `autoRenewAccount`). Keys that only gate *future* permissioned operations and confer no liability
-right now (`supplyKey`, `kycKey`, `freezeKey`, `wipeKey`, `pauseKey`, `feeScheduleKey`,
-`metadataKey`) do not need to sign creation.
+right now (`supplyAuthority`, `kycAuthority`, `freezeAuthority`, `wipeAuthority`, `pauseAuthority`, `feeScheduleAuthority`,
+`metadataAuthority`) do not need to sign creation.
 
 ### Mutability and "clearing" keys / auto-renew
 
@@ -106,23 +106,25 @@ right now (`supplyKey`, `kycKey`, `freezeKey`, `wipeKey`, `pauseKey`, `feeSchedu
 - A `@@nullable` field set to **null** (or never set on the builder) means *leave unchanged*.
 - Clearing an optional `Address`-typed field (`autoRenewAccount`, `treasuryAccountId` is
   non-clearable) uses [`ZERO_ADDRESS`](../base/ledger.md) as the sentinel value.
-- Clearing an optional `Key`-typed field (any of the seven token keys) currently has no portable
-  representation in this V3 spec because the `Key` / `KeyList` sum type is missing — see
-  *Questions & Comments*. HIP-540 added the ability to clear *any* lower-privilege key to an
-  irrevocably-empty state; full support depends on the `Key` sum type landing.
+- Each token key is now the `Authority` authorization type (see
+  [`authority.md`](../base/authority.md) / [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md)),
+  so it can carry a single key, a contract, or an m-of-n threshold. HIP-540 added the ability to
+  *clear* any lower-privilege key to an irrevocably-empty state; clearing is a future write-side
+  `KeyUpdate` operation (per ADR-0004), not expressible as an `Authority` value — see
+  *Questions & Comments*.
 
 ## API Schema
 
 ```
 namespace consensusnode.transactions.tokens
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {TokenType, TokenSupplyType} from token
 requires {Receipt, Transaction} from consensusnode.transactions
 
 // Creates a new token. The token is identified by the `tokenId` returned in the receipt. All
 // seven key fields are optional and follow the rule that a key not set at create time can never
-// be added later (HAPI: `KEY_NOT_PROVIDED`); leaving e.g. `supplyKey` unset permanently fixes
+// be added later (HAPI: `KEY_NOT_PROVIDED`); leaving e.g. `supplyAuthority` unset permanently fixes
 // the token's supply at `initialSupply`.
 @@finalType
 TokenCreateTransaction extends Transaction<TokenCreateReceipt> {
@@ -134,7 +136,7 @@ TokenCreateTransaction extends Transaction<TokenCreateReceipt> {
     @@immutable treasuryAccountId: AccountId                        // account receiving `initialSupply` and all subsequent mints; MUST sign the create transaction
     @@immutable @@default(INFINITE) supplyType: TokenSupplyType     // INFINITE | FINITE; cannot be changed later
     @@immutable @@nullable @@min(1) maxSupply: int64                // FINITE only: protocol-enforced ceiling on totalSupply; unset (and only valid) when supplyType is INFINITE
-    @@immutable @@default(false) freezeDefault: bool                // when true, newly associated accounts start in the FROZEN state (require an explicit TokenUnfreeze before they can move balances); requires freezeKey to be set
+    @@immutable @@default(false) freezeDefault: bool                // when true, newly associated accounts start in the FROZEN state (require an explicit TokenUnfreeze before they can move balances); requires freezeAuthority to be set
     @@immutable @@nullable @@maxLength(100) tokenMemo: string       // short, human-readable label
     @@immutable @@default([]) metadata: bytes                       // opaque token-level metadata (e.g. IPFS CID, HTTPS URL, JSON manifest)
     @@immutable @@nullable expirationTime: zonedDateTime            // when the token expires; SDK default applies when unset
@@ -143,14 +145,14 @@ TokenCreateTransaction extends Transaction<TokenCreateReceipt> {
 
     // Optional key fields — see "Token keys" in the description above for what each one grants.
     // A key NOT set at create time CANNOT be added by TokenUpdate.
-    @@immutable @@nullable adminKey: PublicKey                      // controls update / delete; unset → immutable token; MUST sign the create transaction when set (anti-spoofing)
-    @@immutable @@nullable supplyKey: PublicKey                     // controls mint / burn; unset → fixed supply after creation
-    @@immutable @@nullable kycKey: PublicKey                        // controls KYC grant / revoke; unset → KYC disabled
-    @@immutable @@nullable freezeKey: PublicKey                     // controls freeze / unfreeze; unset → no freeze
-    @@immutable @@nullable wipeKey: PublicKey                       // controls wipe of non-treasury balances; unset → wipe disabled
-    @@immutable @@nullable pauseKey: PublicKey                      // controls pause / unpause; unset → unpausable
-    @@immutable @@nullable feeScheduleKey: PublicKey                // controls custom-fee schedule updates; unset → fees immutable
-    @@immutable @@nullable metadataKey: PublicKey                   // controls per-serial NFT metadata updates (HIP-657); unset → metadata immutable
+    @@immutable @@nullable adminAuthority: Authority                      // controls update / delete; unset → immutable token; MUST sign the create transaction when set (anti-spoofing)
+    @@immutable @@nullable supplyAuthority: Authority                     // controls mint / burn; unset → fixed supply after creation
+    @@immutable @@nullable kycAuthority: Authority                        // controls KYC grant / revoke; unset → KYC disabled
+    @@immutable @@nullable freezeAuthority: Authority                     // controls freeze / unfreeze; unset → no freeze
+    @@immutable @@nullable wipeAuthority: Authority                       // controls wipe of non-treasury balances; unset → wipe disabled
+    @@immutable @@nullable pauseAuthority: Authority                      // controls pause / unpause; unset → unpausable
+    @@immutable @@nullable feeScheduleAuthority: Authority                // controls custom-fee schedule updates; unset → fees immutable
+    @@immutable @@nullable metadataAuthority: Authority                   // controls per-serial NFT metadata updates (HIP-657); unset → metadata immutable
 }
 
 @@finalType
@@ -180,21 +182,21 @@ TokenUpdateTransaction extends Transaction<TokenUpdateReceipt> {
 
     // Key rotations — each requires the new key to also sign (anti-spoofing). A key that was
     // unset at create cannot be set here.
-    @@immutable @@nullable adminKey: PublicKey
-    @@immutable @@nullable supplyKey: PublicKey
-    @@immutable @@nullable kycKey: PublicKey
-    @@immutable @@nullable freezeKey: PublicKey
-    @@immutable @@nullable wipeKey: PublicKey
-    @@immutable @@nullable pauseKey: PublicKey
-    @@immutable @@nullable feeScheduleKey: PublicKey
-    @@immutable @@nullable metadataKey: PublicKey
+    @@immutable @@nullable adminAuthority: Authority
+    @@immutable @@nullable supplyAuthority: Authority
+    @@immutable @@nullable kycAuthority: Authority
+    @@immutable @@nullable freezeAuthority: Authority
+    @@immutable @@nullable wipeAuthority: Authority
+    @@immutable @@nullable pauseAuthority: Authority
+    @@immutable @@nullable feeScheduleAuthority: Authority
+    @@immutable @@nullable metadataAuthority: Authority
 }
 
 @@finalType
 TokenUpdateReceipt extends Receipt {
 }
 
-// Deletes a token. Only possible if the token has an adminKey (an immutable token cannot be
+// Deletes a token. Only possible if the token has an adminAuthority (an immutable token cannot be
 // deleted). After deletion, the token id is not reusable; transactions referencing it return
 // `TOKEN_WAS_DELETED`. Existing balances are NOT swept by this transaction — they remain
 // recorded but unusable for transfer.
@@ -239,7 +241,7 @@ TokenDissociateReceipt extends Receipt {
 }
 
 // Mints new units of a token, crediting them to the treasury account. Requires the token's
-// supplyKey to sign. The payload differs by `tokenType`:
+// supplyAuthority to sign. The payload differs by `tokenType`:
 //
 //   - FUNGIBLE_COMMON  → set `amount` (count in the smallest indivisible unit, must be > 0).
 //   - NON_FUNGIBLE_UNIQUE → set `metadata` (one entry per new serial, max 10 per transaction);
@@ -262,7 +264,7 @@ TokenMintReceipt extends Receipt {
     @@immutable @@default([]) serials: list<int64>                  // NON_FUNGIBLE_UNIQUE only: the serial numbers assigned to the newly minted NFTs (empty for FUNGIBLE_COMMON)
 }
 
-// Burns existing units of a token from the treasury account. Requires the token's supplyKey to
+// Burns existing units of a token from the treasury account. Requires the token's supplyAuthority to
 // sign. The payload differs by `tokenType`:
 //
 //   - FUNGIBLE_COMMON  → set `amount` (must be > 0 and ≤ treasury balance).
@@ -270,7 +272,7 @@ TokenMintReceipt extends Receipt {
 //                           treasury account; max 10 per transaction).
 //
 // Burning NFT serials held by a non-treasury account is not possible via this transaction —
-// use `TokenWipe` (gated by `wipeKey`) instead. Mixing fungible and NFT payloads is rejected;
+// use `TokenWipe` (gated by `wipeAuthority`) instead. Mixing fungible and NFT payloads is rejected;
 // the @@oneOf at the type level makes this statically checkable.
 @@oneOf(amount, serials)
 @@finalType
@@ -305,8 +307,8 @@ Response<TokenCreateReceipt> response = new TokenCreateTransaction()
     .initialSupply(1_000_000_000_000L)         // 1,000,000.000000 EUSD to the treasury
     .treasuryAccountId(client.operatorAccountId)
     .supplyType(TokenSupplyType.INFINITE)
-    .adminKey(client.operatorPublicKey)
-    .supplyKey(client.operatorPublicKey)
+    .adminAuthority(Authority.of(client.operatorPublicKey))
+    .supplyAuthority(Authority.of(client.operatorPublicKey))
     .signWithOperatorAndSubmit(client);
 
 Address tokenId = response.queryReceipt().tokenId;
@@ -325,9 +327,9 @@ new TokenCreateTransaction()
     .treasuryAccountId(client.operatorAccountId)
     .supplyType(TokenSupplyType.FINITE)
     .maxSupply(10_000L)
-    .adminKey(client.operatorPublicKey)
-    .supplyKey(client.operatorPublicKey)
-    .metadataKey(client.operatorPublicKey)     // allow per-serial metadata updates (HIP-657)
+    .adminAuthority(Authority.of(client.operatorPublicKey))
+    .supplyAuthority(Authority.of(client.operatorPublicKey))
+    .metadataAuthority(Authority.of(client.operatorPublicKey))     // allow per-serial metadata updates (HIP-657)
     .signWithOperatorAndSubmit(client);
 ```
 
@@ -344,9 +346,9 @@ PackedTransaction<...> packed = new TokenCreateTransaction()
     .decimals(0)
     .initialSupply(0)
     .treasuryAccountId(treasury.accountId)
-    .supplyKey(supplyOwnerPublicKey)
-    .adminKey(client.operatorPublicKey)
-    .signWithOperator(client)                  // payer + adminKey (operator)
+    .supplyAuthority(Authority.of(supplyOwnerPublicKey))
+    .adminAuthority(Authority.of(client.operatorPublicKey))
+    .signWithOperator(client)                  // payer + adminAuthority (operator)
     .sign(treasury);                           // treasury authorises being bound to the token
 
 packed.submit(client);
@@ -367,7 +369,7 @@ new TokenAssociateTransaction()
 
 ### Mint additional fungible supply
 
-The treasury automatically receives the new units. The `supplyKey` (here the operator) must
+The treasury automatically receives the new units. The `supplyAuthority` (here the operator) must
 sign.
 
 ```
@@ -423,9 +425,9 @@ Both the *current* and the *new* supply key must sign, in addition to the payer 
 ```
 PackedTransaction<...> packed = new TokenUpdateTransaction()
     .tokenId(tokenId)
-    .supplyKey(newSupplyPublicKey)
-    .signWithOperator(client)                  // payer + adminKey (operator) + current supplyKey (operator)
-    .sign(newSupplySigner);                    // new supplyKey
+    .supplyAuthority(Authority.of(newSupplyPublicKey))
+    .signWithOperator(client)                  // payer + adminAuthority (operator) + current supplyAuthority (operator)
+    .sign(newSupplySigner);                    // new supplyAuthority
 
 packed.submit(client);
 ```
@@ -452,28 +454,25 @@ new TokenDeleteTransaction()
 
 ## Questions & Comments
 
-- **All key fields are typed as `PublicKey`, not `Key`.** Same placeholder typing as in
-  [`transactions-files.md`](transactions-files.md) and
-  [`transactions-topics.md`](transactions-topics.md): HAPI takes a `Key` (sum type over
-  `PublicKey` / `ContractID` / `DelegatableContractID` / `KeyList` / `ThresholdKey`), so the
-  current single-key shape cannot express m-of-n custody, contract-controlled tokens (where a
-  smart contract is the supply / KYC / freeze authority), or nested key structures. The `Key`
-  sum type is tracked in [`missing-features.md`](../../missing-features.md) section 3.2 as the
-  prerequisite; once it lands, every key field in this file should be retyped to `Key`. This is
-  particularly load-bearing for tokens: real-world deployments routinely guard `supplyKey` with
-  a treasury-DAO threshold key or a contract id, not a single public key.
+- **All key fields are the `Authority` authorization type.** Each token key (admin, supply,
+  kyc, freeze, wipe, pause, feeSchedule, metadata) is an `Authority` — a single key, a
+  contract, or an m-of-n threshold (`AuthorityList`) — introduced in
+  [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md) and specified in
+  [`authority.md`](../base/authority.md). This resolves the former `PublicKey` placeholder
+  and is particularly load-bearing for tokens: real-world deployments routinely guard
+  `supplyAuthority` with a treasury-DAO threshold or a contract id, not a single public key.
 
 - **Clearing a key field on `TokenUpdate` — not yet expressible.** HIP-540 lets an admin (or
   the key holder itself) clear any of the seven lower-privilege key fields to an
-  irrevocably-empty state (e.g. drop the `adminKey` to make a token immutable, drop the
-  `wipeKey` to permanently disable wipe). HAPI signals "clear" via an empty `KeyList` sentinel;
-  V3 cannot express this until `Key` / `KeyList` exist (see
-  [`missing-features.md`](../../missing-features.md) section 3.2). For
-  `Address`-typed fields, [`ZERO_ADDRESS`](../base/ledger.md) is the existing sentinel —
+  irrevocably-empty state (e.g. drop the `adminAuthority` to make a token immutable, drop the
+  `wipeAuthority` to permanently disable wipe). Clearing is a future write-side `KeyUpdate`
+  operation (per [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md)), not
+  expressible as an `Authority` value. For `Address`-typed fields,
+  [`ZERO_ADDRESS`](../base/ledger.md) is the existing sentinel —
   `autoRenewAccount(ZERO_ADDRESS)` drops the auto-renew account. `treasuryAccountId` is **not**
   clearable: a token must always have a treasury.
 
-- **`customFees` / `feeScheduleKey` interaction is partial.** This file exposes `feeScheduleKey`
+- **`customFees` / `feeScheduleAuthority` interaction is partial.** This file exposes `feeScheduleAuthority`
   on `TokenCreate` / `TokenUpdate` because the field is independent and cheap to model, but the
   write-side `CustomFee` hierarchy needed by `TokenCreate.customFees` and by
   `TokenFeeScheduleUpdate` is **not** specified here. Read-side custom-fee shapes live in

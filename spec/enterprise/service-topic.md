@@ -9,14 +9,14 @@
 namespace enterprise.service.topic
 requires {Page} from common
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Session} from enterprise.service
 
 @@finalType
 Topic {
     @@immutable topicId: Address
-    @@immutable @@nullable adminKey: PublicKey
-    @@immutable @@nullable submitKey: PublicKey
+    @@immutable @@nullable adminAuthority: Authority
+    @@immutable @@nullable submitAuthority: Authority
     @@immutable createdTimestamp: zonedDateTime
     @@immutable memo: string
 }
@@ -37,7 +37,7 @@ TopicService {
 
     @@throws(service-error) Topic createTopic(memo: string)
 
-    @@throws(service-error) Topic createTopic(adminKey: PublicKey, memo: string)
+    @@throws(service-error) Topic createTopic(adminAuthority: Authority, memo: string)
     
     @@throws(service-error) @@nullable Topic findById(topicId: Address)
     
@@ -62,3 +62,10 @@ TopicService createService(session: Session)
 ```
 
 ## Questions & Comments
+
+- The authorization-key fields/parameters here (`Topic.adminAuthority`, `Topic.submitAuthority`, and `createTopic(adminAuthority)`)
+  accept the full `Authority` type, so multisig (m-of-n) and contract-controlled keys work at the enterprise layer
+  too — not just single public keys. See [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md) and
+  [`authority.md`](../base/authority.md).
+- Open option: simple single-key convenience overloads taking a `PublicKey` directly could be added later if the
+  enterprise layer wants extra ergonomics for the common single-signer case.

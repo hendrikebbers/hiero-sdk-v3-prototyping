@@ -6,7 +6,7 @@ imports one or more types from namespace `B`".
 
 The namespaces group into the five `spec/` folders / layers:
 
-- **base** — `common`, `grpc`, `proto`, `nativeToken`, `keys`, `ledger`, `ledger.config`, `endorsement`, `hedera`
+- **base** — `common`, `grpc`, `proto`, `nativeToken`, `keys`, `ledger`, `ledger.config`, `authority`, `hedera`
 - **consensus-node-client** — `consensusnode.client`, `consensusnode.transactions[.accounts|.spi]`, `consensusnode.queries[.accounts|.files]`, `consensusnode.proto[.account]`
 - **consensus-node-admin-client** — `consensusnode.admin.{freeze|system|nodes|network}`
 - **mirror-node-client** — `mirrornode` and its per-domain sub-namespaces
@@ -49,7 +49,7 @@ flowchart LR
         keys["keys"]
         ledger["ledger"]
         ledger_config["ledger.config"]
-        endorsement["endorsement"]
+        authority["authority"]
         hedera["hedera"]
     end
 
@@ -100,8 +100,8 @@ flowchart LR
     hedera --> nativeToken
     ledger_config --> ledger
     ledger --> nativeToken
-    endorsement --> keys
-    endorsement --> ledger
+    authority --> keys
+    authority --> ledger
 
     %% consensus-node-client
     cn_client --> ledger
@@ -208,7 +208,7 @@ flowchart LR
     classDef mirror fill:#fef7e0,stroke:#f9ab00,color:#000;
     classDef enterprise fill:#fce8e6,stroke:#ea4335,color:#000;
 
-    class common,grpc,proto,nativeToken,keys,ledger,ledger_config,endorsement,hedera base;
+    class common,grpc,proto,nativeToken,keys,ledger,ledger_config,authority,hedera base;
     class cn_client,cn_tx,cn_tx_accounts,cn_tx_spi,cn_queries,cn_queries_accounts,cn_queries_files,cn_proto,cn_proto_account consensus;
     class cn_admin_freeze,cn_admin_system,cn_admin_nodes,cn_admin_network admin;
     class mn,mn_account,mn_common,mn_contract,mn_network,mn_nft,mn_token,mn_topic,mn_transaction mirror;

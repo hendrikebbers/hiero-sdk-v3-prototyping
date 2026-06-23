@@ -1,4 +1,4 @@
-# ADR-0004: Model HAPI authorization keys as an `Endorsement` sum type
+# ADR-0004: Model HAPI authorization keys as an `Authority` sum type
 
 **Status:** Proposed
 **Date:** 2026-06-22
@@ -31,10 +31,10 @@ whose subtypes include the public keys, the identifier types `ContractId` / `Evm
 this ADR sets out to avoid). V3's specs have so far declined to commit and stand in with a
 placeholder: roughly 57 key fields are typed as `PublicKey` or
 `list<PublicKey>` (`transactions-tokens.md` 8 keys, account `key`,
-file `keys`, topic `adminKey`/`submitKey`, and their read-side mirrors in `queries-*` and
+file `keys`, topic `adminAuthority`/`submitAuthority`, and their read-side mirrors in `queries-*` and
 `mirror-node-*`). `missing-features.md` §3.2 records `Key` / `KeyList` / `ThresholdKey` as
 missing and the prerequisite for the rest. The placeholder loses three real capabilities:
-contract-controlled authority (`contractID` keys — e.g. a token whose `supplyKey` is a smart
+contract-controlled authority (`contractID` keys — e.g. a token whose `supplyAuthority` is a smart
 contract), m-of-n custody (`thresholdKey`), and nesting. A flat `set<PublicKey>` cannot express
 any of them, because the leaf is a `Key`, not a public key.
 
@@ -58,64 +58,70 @@ any of them, because the leaf is a `Key`, not a public key.
 
 ## Decision
 
-We introduce a dedicated **`endorsement`** namespace defining a sealed `Endorsement` sum type
-that replaces the `PublicKey` placeholder for authorization keys. (**`Authority`** is the
-documented alternative name for the root type — equally well-scoped; the choice between the two
-is a coinage preference, not a structural one.) The design is governed by one principle that drove
-every sub-decision:
+We introduce a dedicated **`authority`** namespace defining a sealed `Authority` sum type
+that replaces the `PublicKey` placeholder for authorization keys. (**`Endorsement`** is the
+documented alternative name for the root type — equally well-scoped; the choice between the two is
+a coinage preference, not a structural one. `Authority` was chosen because it reads better as the
+many field names — `adminAuthority`, account `authority` — than `adminEndorsement` would.) The
+design is governed by one principle that drove every sub-decision:
 
 > **No in-band sentinels.** Each distinct meaning is its own type or variant — never a magic
 > value or an overloaded `null`.
 
 ```
-namespace endorsement
+namespace authority
 requires {PublicKey} from keys
 requires {ContractId} from ledger
 
 // Pure data sum type — no behavior methods. Immutable value type with structural
 // equality (provided idiomatically by each language binding: Java records,
-// Rust derive(PartialEq), etc.). Two Endorsements are equal iff their trees match.
-@@sealed abstraction Endorsement {}
+// Rust derive(PartialEq), etc.). Two Authorities are equal iff their trees match.
+@@sealed abstraction Authority {}
 
-@@finalType PublicKeyEndorsement extends Endorsement { @@immutable publicKey: PublicKey }
+@@finalType PublicKeyAuthority extends Authority { @@immutable publicKey: PublicKey }
 
-@@finalType ContractEndorsement extends Endorsement {
+@@finalType ContractAuthority extends Authority {
     @@immutable contractId: ContractId
     @@immutable @@default(false) delegatable: bool   // false → ContractID, true → DelegatableContractID
 }
 
-@@finalType EndorsementList extends Endorsement {
-    @@immutable @@minLength(1) children: list<Endorsement>
+@@finalType AuthorityList extends Authority {
+    @@immutable @@minLength(1) children: list<Authority>
     @@immutable @@min(1) threshold: int32            // always set; invariant 1 ≤ threshold ≤ children.size()
 }
 
 // construction (blessed path; leaves are wrapped internally):
-@@static Endorsement of(children: Endorsement...)             // n-of-n: threshold = children.size()
-@@static Endorsement of(threshold: int32, children: Endorsement...)   // m-of-n
-@@static Endorsement of(publicKey: PublicKey)                 // PublicKeyEndorsement
-@@static Endorsement ofContract(contractId: ContractId)       // plain ContractID
-@@static Endorsement ofDelegatable(contractId: ContractId)    // DelegatableContractID
+@@static Authority of(children: Authority...)             // n-of-n: threshold = children.size()
+@@static Authority of(threshold: int32, children: Authority...)   // m-of-n
+@@static Authority of(publicKey: PublicKey)                 // PublicKeyAuthority
+@@static Authority ofContract(contractId: ContractId)       // plain ContractID
+@@static Authority ofDelegatable(contractId: ContractId)    // DelegatableContractID
 ```
 
 Concretely we will:
 
 - **Use composition, not inheritance.** Variants *wrap* `PublicKey` and `ContractId` rather than
-  those types extending `Endorsement`. This is the load-bearing choice: it keeps the dependency
-  one-directional (`endorsement → {keys, ledger}`), so `keys`/`ledger` stay foundational and know
-  nothing about `endorsement`, and it lets all variants be co-located for real compile-time
-  sealing. `PrivateKey` simply has no wrapper, so it is structurally never an `Endorsement`.
+  those types extending `Authority`. This is the load-bearing choice: it keeps the dependency
+  one-directional (`authority → {keys, ledger}`), so `keys`/`ledger` stay foundational and know
+  nothing about `authority`, and it lets all variants be co-located for real compile-time
+  sealing. `PrivateKey` simply has no wrapper, so it is structurally never an `Authority`.
 - **Model the composite as a single type with a mandatory `threshold`.** n-of-n is
   `threshold == children.size()`, not a sentinel. Factories hide the redundant threshold for the
   common all-of case.
 - **Rely on value-type structural equality**, provided idiomatically by each language binding
   (records / `derive(PartialEq)`), rather than declaring an explicit `equals` method. This
   satisfies the read-side need ("is this the same key I'm about to write?") without adding API
-  surface, consistent with the rest of the specs. `Endorsement` carries **no behavior methods** —
+  surface, consistent with the rest of the specs. `Authority` carries **no behavior methods** —
   it is a pure data sum type; any flatten/inspect convenience (e.g. collecting leaf public keys)
   is derivable by pattern-matching and is deferred until a concrete need appears.
 - **Treat `@@sealed` as forthcoming.** The spec uses it now; a separate follow-up adds it to the
   meta-language with the per-language mappings (Java `sealed`, Rust `enum`, TS discriminated
   union).
+- **Name fields for the type, not "key".** Authorization fields are `adminAuthority`,
+  `supplyAuthority`, `submitAuthority`, … and the account / file field is simply `authority`, so
+  field and type agree (`adminAuthority: Authority`). The legacy HAPI/V2 `…Key` field names are
+  dropped — a field literally named `key` typed as a possibly-contract-or-m-of-n `Authority` was
+  the core dissonance this naming removes.
 
 ### Rejected alternatives
 
@@ -124,16 +130,19 @@ Concretely we will:
 - **Reuse the name `Key`.** Forces the absurd statement "a `PrivateKey` is not a `Key`" (because
   private keys must be excluded), and collides with the existing cryptographic `keys.Key`.
   `Allowance` was also rejected — it is already a distinct HAPI concept (HIP-336 spend approval).
-  `Endorsement` is a deliberate **coinage**, not an industry-standard term: collision-free, and
-  precise (a leaf "endorses"; covers both signature and contract-execution satisfaction). No
-  major ledger names the account-authorization construct "endorsement" — Bitcoin and Solana say
-  "multisig" / "m-of-n", Safe on Ethereum says "owners" + "threshold", and Hedera v2 itself uses
-  `Key` / `KeyList` / `ThresholdKey`. Those terms all name only the *m-of-n composite*, so none
-  can name a root that must also cover a single key or a contract leaf. The closest existing term
-  is Hyperledger Fabric's "endorsement policy" (`AND` / `OR` / `OutOf` over principals) — but that
-  governs which peers endorse a *transaction* under the Execute-Order-Validate model, a
-  structurally identical m-of-n signature policy in a different domain. It is an analogy, not a
-  precedent. `Authority` is the documented runner-up coinage (see *Decision*).
+  The chosen name **`Authority`** is a deliberate coinage, not an industry-standard term, but it is
+  collision-free, correctly scoped (it names a single key, a contract, *or* an m-of-n composition —
+  not just a signature), and it reads naturally as the many field names (`adminAuthority`,
+  `supplyAuthority`, account `authority`). No major ledger offers a reusable term anyway:
+  Bitcoin/Solana say "multisig" / "m-of-n", Safe on Ethereum says "owners" + "threshold", and
+  Hedera v2 uses `Key` / `KeyList` / `ThresholdKey` — all of which name only the *m-of-n composite*
+  and cannot name a root that must also cover a single key or a contract leaf. **`Endorsement`** was
+  the documented runner-up (its precedent is Hyperledger Fabric's "endorsement policy" — `AND` /
+  `OR` / `OutOf` over principals — though that governs which peers endorse a *transaction* under
+  the Execute-Order-Validate model: a structurally identical m-of-n policy in a different domain,
+  so an analogy, not a precedent). `Authority` won over `Endorsement` because it reads better across
+  the field names (`adminAuthority` vs. the clunky `adminEndorsement`) and is the more guessable
+  English word.
 - **`MultiSig` (or any term naming only the m-of-n case) as the root name.** Most discoverable —
   it is the term a developer actually searches for. Rejected because it is *semantically false for
   the root*: the root holds three things — a single key (the **most common** case), a contract (no
@@ -144,24 +153,24 @@ Concretely we will:
   the right way — by putting the `multisig` / `m-of-n` keyword on the **factory** (e.g. a
   `multiSig(...)` / `threshold(...)` factory) and in the type's doc text — so a search lands on the
   factory without forcing the root type to lie.
-- **Inheritance (`PublicKey`/`ContractId extends Endorsement` directly) — a genuine alternative,
+- **Inheritance (`PublicKey`/`ContractId extends Authority` directly) — a genuine alternative,
   close call.** This is the other good option, not a weak one. It reads better (a `PublicKey`
-  *is* an `Endorsement`; no wrapper, no `.publicKey` indirection on read, bare-type usability
+  *is* an `Authority`; no wrapper, no `.publicKey` indirection on read, bare-type usability
   preserved) and is how the Hedera v2 SDK is shaped (`PublicKey extends Key`). Its cost is sealing:
   a *compile-time* `@@sealed` root must name its permitted subtypes, but those subtypes live in
-  `keys`/`ledger`, which would then depend on `endorsement` → dependency cycle. Inheritance is
+  `keys`/`ledger`, which would then depend on `authority` → dependency cycle. Inheritance is
   therefore only viable if `@@sealed` is downgraded to a **runtime-only** convention (closure
   checked by `instanceof`, no compiler exhaustiveness). We chose composition because we valued
   compile-time exhaustive matching on the read side over bare-type ergonomics — but the trade is
   close, and if the meta-language cannot deliver compile-time `@@sealed`, or if bare-type
   usability proves more valuable in practice, this inheritance variant is the natural fallback and
   should be reconsidered.
-- **Two composite types (`EndorsementList` + `ThresholdEndorsement`).** Considered to avoid a
+- **Two composite types (`AuthorityList` + `ThresholdAuthority`).** Considered to avoid a
   nullable threshold; rejected because a *mandatory* threshold removes the sentinel without
   splitting the type.
 - **Folded composite with `@@nullable threshold` (null ⇒ all).** Rejected: that `null` is itself
   an in-band sentinel, the very smell this ADR forbids.
-- **`EmptyEndorsement` variant for key clearing.** Rejected: re-introduces the value-vs-operation
+- **`EmptyAuthority` variant for key clearing.** Rejected: re-introduces the value-vs-operation
   overload as a type. On read, "no key / immutable" is already the `@@nullable` field being
   `null`; on write, clearing is an *operation* and belongs to a future `KeyUpdate` type on the
   update transactions, not to the value set.
@@ -169,7 +178,7 @@ Concretely we will:
 ## Consequences
 
 ### Positive
-- The ~57 placeholder fields can be retyped to `Endorsement`, unlocking contract-controlled
+- The ~57 placeholder fields can be retyped to `Authority`, unlocking contract-controlled
   authority, m-of-n custody, and nesting — the capabilities HAPI actually has.
 - Compile-time exhaustive pattern matching on the read side (sealed, co-located variants).
 - `keys` and `ledger` remain foundational and dependency-light; no cycle, no inversion.
@@ -178,7 +187,7 @@ Concretely we will:
 
 ### Negative
 - **Bare-type usability is surrendered.** A raw `PublicKey`/`ContractId` cannot be passed where an
-  `Endorsement` is expected; callers go through factories, and the read side pays a
+  `Authority` is expected; callers go through factories, and the read side pays a
   `.publicKey`/`.contractId` indirection hop.
 - **The meta-language gains a dependency on a not-yet-existing feature (`@@sealed`).** The spec is
   written against a primitive that must still be defined and mapped per language.
@@ -198,7 +207,7 @@ Concretely we will:
   enforced.
 - Retype the placeholder fields across `transactions-*`, `queries-*`, and `mirror-node-*` and
   update `missing-features.md` §3.2 once `@@sealed` lands. **Revisit this decision** — falling back
-  to the inheritance variant (`PublicKey`/`ContractId extends Endorsement`, runtime-only sealing) —
+  to the inheritance variant (`PublicKey`/`ContractId extends Authority`, runtime-only sealing) —
   if compile-time `@@sealed` proves unworkable in the meta-language, or if profiling shows the
   bare-type/indirection cost is unacceptable in practice.
 
@@ -216,12 +225,12 @@ Concretely we will:
 - V2 SDK shape — Hiero Java SDK `Key` is an abstract class with `PublicKey` (ED25519/ECDSA),
   `ContractId`, `DelegateContractId`, `EvmAddress`, and `KeyList` as subtypes —
   `hiero-ledger/hiero-sdk-java` `sdk/.../com/hedera/hashgraph/sdk/Key.java`, accessed 2026-06-22.
-- Comparative authorization terminology (accessed 2026-06-22): Hyperledger Fabric "endorsement
-  policy" / `AND`/`OR`/`OutOf` over MSP principals, governing *transaction* endorsement by peers —
-  https://hyperledger-fabric.readthedocs.io/en/latest/endorsement-policies.html; Solana SPL Token
+- Comparative authorization terminology (accessed 2026-06-22): Hyperledger Fabric "authority
+  policy" / `AND`/`OR`/`OutOf` over MSP principals, governing *transaction* authority by peers —
+  https://hyperledger-fabric.readthedocs.io/en/latest/authority-policies.html; Solana SPL Token
   "Multisig" / "M of N multisignatures" — https://www.solana-program.com/docs/token; Safe
-  (Ethereum) "owners" + "threshold" — https://docs.safe.global. No ledger uses "endorsement" for
-  account-authorization keys; "Endorsement" is a coinage.
+  (Ethereum) "owners" + "threshold" — https://docs.safe.global. No ledger uses "authority" for
+  account-authorization keys; "Authority" is a coinage.
 - Existing cryptographic `Key` abstraction: `spec/base/keys.md:43,67,75`.
 - Namespace dependencies: `spec/base/keys.md` (no `requires`), `spec/base/ledger.md:104`;
   `ContractId` at `spec/base/ledger.md:38`.

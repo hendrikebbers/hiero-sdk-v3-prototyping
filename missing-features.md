@@ -42,9 +42,10 @@ Core lifecycle and supply transactions are now specified in
 | `TokenMint` (FT amount + NFT metadata) | :white_check_mark: |
 | `TokenBurn` (FT amount + NFT serials) | :white_check_mark: |
 
-Open inside that file's *Questions & Comments*: `Key` sum-type still missing (every key field is
-typed as `PublicKey`); HIP-540 key-clearing not expressible until `KeyList` lands;
-`TokenCreate.customFees` write-side builder deferred (depends on §3.3).
+Open inside that file's *Questions & Comments*: HIP-540 key-clearing is deferred to a future
+write-side `KeyUpdate` type (see [ADR-0004](docs/adr/0004-authority-authorization-sum-type.md));
+`TokenCreate.customFees` write-side builder deferred (depends on §3.3). (The key fields themselves
+are now typed as `Authority` — see §3.2.)
 
 Still missing — admin operations and HIP-904 airdrops:
 
@@ -76,8 +77,8 @@ file's *Questions & Comments*.
 `TopicCreate`, `TopicUpdate`, `TopicDelete` — :white_check_mark:
 ([`transactions-topics.md`](spec/consensus-node-client/transactions-topics.md)).
 `TopicMessageSubmit` (chunked) — :x: (shares the chunking design question with
-`FileAppend`). HIP-991 custom fees on topics (`customFees`, `feeScheduleKey`,
-`feeExemptKeyList`) — :x: (depends on write-side custom-fee model from §3.3).
+`FileAppend`). HIP-991 custom fees on topics (`customFees`, `feeScheduleAuthority`,
+`feeExemptAuthorities`) — :x: (depends on write-side custom-fee model from §3.3).
 
 ### 1.6 Schedule service (HIP-755 long-term)
 
@@ -336,27 +337,28 @@ missing as typed values:
 
 | API in v2 | V3 spec |
 | --- | --- |
-| `Key` (sum type over `PublicKey` / `ContractID` / `DelegatableContractID` / `KeyList` / `ThresholdKey`) — **prerequisite** for everything below it in this section | :x: |
-| `KeyList` (n-of-n composition of `Key`s; entries are themselves `Key`s, so the structure is recursive) | :x: |
-| `ThresholdKey` (m-of-n composition of `Key`s; an `int32 threshold` plus an inner `KeyList`) | :x: |
+| `Key` (HAPI sum type over public key / `ContractID` / `DelegatableContractID` / `KeyList` / `ThresholdKey`) | :white_check_mark: modelled as `Authority` ([`authority.md`](spec/base/authority.md), [ADR-0004](docs/adr/0004-authority-authorization-sum-type.md)) |
+| `KeyList` (n-of-n composition) | :white_check_mark: `AuthorityList` with `threshold == children.size()` |
+| `ThresholdKey` (m-of-n composition) | :white_check_mark: `AuthorityList` with `threshold < children.size()` |
 | `Mnemonic` (BIP-39 12 / 24-word + legacy 22-word, `toStandardEd25519PrivateKey`, `toStandardECDSAsecp256k1PrivateKey`) | :x: |
 | `PublicKey.toEvmAddress()` / `toAccountId()` | :x: |
 | HSM signer function (`UnaryFunction<byte[], byte[]>`) | :warning: abstracted via `TransactionSigner` |
 
-`Key` is the sum-type at the top of the HAPI key model: every `key` field on the protocol —
-account keys, every kind of token key (`adminKey` / `treasuryKey` / `wipeKey` / `freezeKey` /
-`kycKey` / `pauseKey` / `supplyKey` / `feeScheduleKey` / `metadataKey`), topic
-`adminKey` / `submitKey`, schedule `adminKey`, contract `adminKey`, and the per-entry type in
-a file's `KeyList` — is a `Key`, not a raw public key. Because `KeyList` and `ThresholdKey`
-are themselves variants of `Key`, the structure is recursive: a single account can be guarded
-by, e.g., "Alice's Ed25519 OR (2-of-3 of {Bob, Carol, ContractID(dao)})".
+The HAPI authorization-key model is now the [`authority`](spec/base/authority.md) namespace:
+`Authority` is a sealed sum type with `PublicKeyAuthority`, `ContractAuthority`, and a single
+recursive composite `AuthorityList` (n-of-n when `threshold == children.size()`, m-of-n
+otherwise). It covers what the old `PublicKey` / `list<PublicKey>` placeholders could not —
+contract-controlled authority, m-of-n custody, and nesting. The design and the rejected
+alternatives are recorded in
+[ADR-0004](docs/adr/0004-authority-authorization-sum-type.md).
 
-Until `Key` exists, every spec that needs a key field is forced into one of two compromises:
-typing it as `PublicKey` (loses contract-id keys, m-of-n custody, nested structures) or as
-`list<PublicKey>` (loses thresholds and the ability to nest). Both are placeholders. The
-current uses are in [`transactions-accounts.md`](spec/consensus-node-client/transactions-accounts.md)
-(account `key`) and [`transactions-files.md`](spec/consensus-node-client/transactions-files.md)
-(file `keys`).
+All key fields across the specs (account `key`; the eight token keys; topic `adminAuthority` /
+`submitAuthority` / `feeScheduleAuthority` / `feeExemptAuthorities`; contract `adminAuthority`; node `adminAuthority`; file
+`key`; and their read-side mirrors in `queries-*` and `mirror-node-*`) have been retyped from the
+placeholder to `Authority`. Two items remain open: `@@sealed` must still be added to the
+meta-language (the spec uses it ahead of that), and key *clearing* (HIP-540) is deferred to a
+future write-side `KeyUpdate` type rather than being expressed as an `Authority` value — both
+tracked as ADR-0004 follow-ups.
 
 ### 3.3 Custom fees (HTS + HIP-991)
 

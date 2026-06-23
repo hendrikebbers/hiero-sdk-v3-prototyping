@@ -62,13 +62,13 @@ approve with `approveAll = false` for the same `(owner, spender, tokenId)`.
 ```
 namespace consensusnode.transactions.accounts
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {NativeToken} from nativeToken
 requires {Receipt, Transaction} from consensusnode.transactions
 
 @@finalType
 AccountCreateTransaction extends Transaction<AccountCreateReceipt> {
-    @@immutable key: PublicKey
+    @@immutable authority: Authority
     @@immutable @@default(0) initialBalance: NativeToken<ANY, ANY>
     @@immutable @@nullable accountMemo: string
     @@immutable @@default(false) receiverSignatureRequired: bool
@@ -88,7 +88,7 @@ AccountCreateReceipt extends Receipt {
 @@finalType
 AccountUpdateTransaction extends Transaction<AccountUpdateReceipt> {
     @@immutable accountId: AccountId                            // the account that is being updated
-    @@immutable @@nullable key: PublicKey                          // the new key (requires signatures with both old and new keys)
+    @@immutable @@nullable authority: Authority                          // the new key (requires signatures with both old and new keys)
     @@immutable @@nullable accountMemo: string
     @@immutable @@nullable receiverSignatureRequired: bool
     @@immutable @@nullable maxAutomaticTokenAssociations: int32

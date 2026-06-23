@@ -40,9 +40,9 @@ consensus-node body size limit.
 
 | Transaction         | Signers required                                                                          |
 |---------------------|-------------------------------------------------------------------------------------------|
-| `FileCreate`        | the *payer* **and** every key in the new `keys` list (anti-spoofing: cannot bind another party's key as a file modifier without their consent) |
-| `FileAppend`        | the *payer* **and** every key in the file's current key list                              |
-| `FileUpdate`        | the *payer* **and** every key in the *current* key list; if `keys` changes, every key in the *new* list must sign as well |
+| `FileCreate`        | the *payer* **and** every key in the new `key` authorization (anti-spoofing: cannot bind another party's key as a file modifier without their consent) |
+| `FileAppend`        | the *payer* **and** every key in the file's current `key` authorization                   |
+| `FileUpdate`        | the *payer* **and** every key in the *current* `key` authorization; if `key` changes, every key in the *new* authorization must sign as well |
 | `FileDelete`        | the *payer* **and** every key in the file's current key list                              |
 
 When the operator is also the sole key on the file, `signWithOperatorAndSubmit(client)` is
@@ -55,13 +55,13 @@ enough. Multi-key files require the multi-signature flow shown in
 ```
 namespace consensusnode.transactions.files
 requires {Address} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Receipt, Transaction} from consensusnode.transactions
 
 @@finalType
 FileCreateTransaction extends Transaction<FileCreateReceipt> {
     @@immutable @@default([]) contents: bytes                  // initial content; further bytes via FileAppend
-    @@immutable @@default([]) keys: list<PublicKey>            // write-access key list; ALL listed keys must sign any modification
+    @@immutable @@nullable authority: Authority                    // write-access authorization; an all-must-sign rule is an AuthorityList
     @@immutable @@nullable expirationTime: zonedDateTime       // when the file expires; SDK default if unset
     @@immutable @@nullable fileMemo: string                    // short, human-readable label (max 100 chars)
 }
@@ -90,7 +90,7 @@ FileAppendReceipt extends Receipt {
 FileUpdateTransaction extends Transaction<FileUpdateReceipt> {
     @@immutable fileId: Address
     @@immutable @@nullable contents: bytes                     // when set, replaces the entire file contents
-    @@immutable @@nullable keys: list<PublicKey>               // when set, replaces the write-access key list
+    @@immutable @@nullable authority: Authority                    // write-access authorization; an all-must-sign rule is an AuthorityList
     @@immutable @@nullable expirationTime: zonedDateTime       // when set, extends (or sets) the expiration time
     @@immutable @@nullable fileMemo: string                    // when set, replaces the memo
 }
@@ -118,7 +118,7 @@ HieroClient client = ...;          // operator's key will also gate the file
 
 Response<FileCreateReceipt> response = new FileCreateTransaction()
     .contents("hello world".bytes)
-    .keys([client.operatorPublicKey])
+    .authority(Authority.of(client.operatorPublicKey))
     .fileMemo("greeting")
     .signWithOperatorAndSubmit(client);
 
@@ -139,14 +139,14 @@ new FileAppendTransaction()
 
 ### Update — replace contents, rotate keys (multi-signature)
 
-`contents` is replaced (not appended). Rotating the key list requires signatures from *both*
-the current and the new keys, in addition to the payer.
+`contents` is replaced (not appended). Rotating the authorization to an all-must-sign pair
+requires signatures from *both* the current and the new keys, in addition to the payer.
 
 ```
 PackedTransaction<...> packed = new FileUpdateTransaction()
     .fileId(fileId)
     .contents("v2 payload".bytes)
-    .keys([newKeyA, newKeyB])
+    .authority(Authority.of(Authority.of(newKeyA), Authority.of(newKeyB)))   // all-must-sign AuthorityList
     .signWithOperator(client)        // payer + current key (operator)
     .sign(newSignerA)                // new key
     .sign(newSignerB);               // new key
@@ -164,18 +164,15 @@ new FileDeleteTransaction()
 
 ## Questions & Comments
 
-- **`keys` is `list<PublicKey>` instead of a list of `Key`.** The top-level *n-of-n*
-  requirement is hard-coded by the File service — every key in `keys` must sign, so a
-  hypothetical `threshold` on the outer list would be ignored. That is not the gap: the gap
-  is that HAPI's `FileCreateTransactionBody.keys` is a `KeyList` of **`Key`** values, and
-  `Key` is a sum type (`PublicKey` / `ContractID` / `DelegatableContractID` / `KeyList` /
-  `ThresholdKey`). Each individual entry in a file's key list may therefore itself be a
-  threshold-key, a nested key-list, or a contract id — e.g. `[Ed25519(alice),
-  ThresholdKey(2-of-3, [Ed25519(bob), Ed25519(carol), ContractID(dao)])]`. With
-  `list<PublicKey>` none of that composition is expressible. The fix is the `Key` sum type,
-  tracked in [`missing-features.md`](../../missing-features.md) section 2.2; once it lands,
-  the field should be retyped to `list<Key>` (and ideally to `KeyList`, once that exists as
-  the proper named type).
+- **`key` is a single `Authority`.** HAPI's `FileCreateTransactionBody.keys` is a single
+  `KeyList` — one authorization requirement whose entries must *all* sign to modify the file —
+  so V3 models it as one `key: Authority` rather than a `list`. The all-must-sign rule is an
+  `AuthorityList` with `threshold == children.size()`, and because `Authority` is recursive
+  each entry may itself be a single key, a contract, or a nested threshold — e.g.
+  `Authority.of(Authority.of(alice), Authority.of(2, Authority.of(bob), Authority.of(carol), Authority.ofContract(dao)))`.
+  The `Authority` authorization type is introduced in
+  [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md) and specified in
+  [`authority.md`](../base/authority.md), resolving the former `list<PublicKey>` placeholder.
 
 - **Chunked appends are not modelled at the type level.** `FileAppendTransaction.contents`
   accepts the full byte payload and relies on the SDK to split it into multiple consensus

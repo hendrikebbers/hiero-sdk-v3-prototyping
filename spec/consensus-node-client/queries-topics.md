@@ -32,7 +32,7 @@ SHA-384 chain over all `TopicMessageSubmit`s applied to the topic so far.
 ```
 namespace consensusnode.queries.topics
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {PaidQuery} from consensusnode.queries
 
 // Full topic metadata snapshot. Returned by TopicInfoQuery.
@@ -42,8 +42,8 @@ type TopicInfo {
     @@immutable runningHash: bytes                            // SHA-384 over all submitted messages so far
     @@immutable sequenceNumber: int64                         // number of messages submitted so far
     @@immutable expirationTime: zonedDateTime
-    @@immutable @@nullable adminKey: PublicKey                // unset → topic is immutable (no update / delete)
-    @@immutable @@nullable submitKey: PublicKey               // unset → topic is public (any account may submit)
+    @@immutable @@nullable adminAuthority: Authority              // unset → topic is immutable (no update / delete)
+    @@immutable @@nullable submitAuthority: Authority             // unset → topic is public (any account may submit)
     @@immutable @@nullable autoRenewPeriod: seconds
     @@immutable @@nullable autoRenewAccount: AccountId        // pays auto-renewal; if unset, the topic itself pays
 }
@@ -69,8 +69,8 @@ TopicInfo info = new TopicInfoQuery()
     .value;
 
 int64       messageCount = info.sequenceNumber;
-PublicKey   admin        = info.adminKey;          // null if the topic is immutable
-PublicKey   submit       = info.submitKey;         // null if the topic is public
+Authority admin        = info.adminAuthority;          // null if the topic is immutable
+Authority submit       = info.submitAuthority;         // null if the topic is public
 ```
 
 ### Verify a mirror-node message stream against the consensus node
@@ -105,12 +105,11 @@ combine it with `maxQueryPayment` for a hard ceiling. See
 
 ## Questions & Comments
 
-- **`adminKey` / `submitKey` are typed as `PublicKey`, not `Key`.** Same placeholder typing
-  as on the write side; see [`transactions-topics.md`](transactions-topics.md) *Questions &
-  Comments* for why a single `PublicKey` cannot express the recursive `Key` sum type that
-  HAPI actually returns (entries may be `KeyList`, `ThresholdKey`, `ContractID`, …). Tracked
-  in [`missing-features.md`](../../missing-features.md) section 3.2 — the `Key` row is a
-  prerequisite for retyping both fields.
+- **`adminAuthority` / `submitAuthority` are the `Authority` authorization type.** Both are an
+  `Authority` (single key / contract / m-of-n) — see
+  [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md) and
+  [`authority.md`](../base/authority.md). This resolves the former `PublicKey` placeholder
+  that could not express the recursive authorization requirement HAPI returns.
 
 - **No `deleted` flag, unlike `FileInfo` / `AccountInfo`.** HAPI does not return a deleted
   topic via `ConsensusGetTopicInfo`: once a topic is removed (by `TopicDelete` or by
@@ -132,7 +131,7 @@ combine it with `maxQueryPayment` for a hard ceiling. See
   becomes a real use case, add `@@default(3) runningHashVersion: int32` — additive change.
 
 - **HIP-991 custom-fee fields are out of scope.** `ConsensusGetTopicInfo` in HAPI also carries
-  `feeScheduleKey: Key`, `feeExemptKeyList: list<Key>`, and `customFees: list<FixedCustomFee>`
+  `feeScheduleAuthority: Key`, `feeExemptAuthorities: list<Key>`, and `customFees: list<FixedCustomFee>`
   for revenue-generating topics. These are deliberately omitted here for the same reason
   they are absent on `TopicCreate` / `TopicUpdate` — see
   [`transactions-topics.md`](transactions-topics.md) *Questions & Comments* and

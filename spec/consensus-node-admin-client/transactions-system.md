@@ -7,7 +7,7 @@ governance council can use to remove or restore a file or contract that violates
 policy (illegal content, malicious bytecode, ...). They are not normal account-level
 deletes:
 
-- A *regular* `FileDelete` / `ContractDelete` requires the asset's own `keys` / `adminKey`
+- A *regular* `FileDelete` / `ContractDelete` requires the asset's own `keys` / `adminAuthority`
   and is irreversible.
 - A `SystemDelete` requires the **privileged system-admin or system-delete key**
   (configured at the consensus-node level), bypasses the asset's keys entirely, and can be

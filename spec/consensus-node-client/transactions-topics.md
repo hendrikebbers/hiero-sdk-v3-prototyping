@@ -8,10 +8,10 @@ established by the consensus node and republished by mirror nodes for subscriber
 
 Each topic carries two optional keys that control how it can be modified and used:
 
-- **`adminKey`** — required to update or delete the topic. When unset, the topic is
+- **`adminAuthority`** — required to update or delete the topic. When unset, the topic is
   **immutable**: nobody, not even the original creator, can change its metadata or delete it.
   The topic will then live until its expiration time and be removed by the protocol.
-- **`submitKey`** — required to submit messages to the topic. When unset, the topic is
+- **`submitAuthority`** — required to submit messages to the topic. When unset, the topic is
   **public**: any account may submit. When set, only callers who sign with this key may post.
 
 Like accounts, topics expire and can be auto-renewed: `autoRenewPeriod` is the renewal window
@@ -28,16 +28,16 @@ A topic's lifecycle is:
                   └── (TopicMessageSubmit, modelled separately)
 ```
 
-`TopicMessageSubmit` and the HIP-991 custom-fee fields (`customFees`, `feeScheduleKey`,
-`feeExemptKeyList`) are deliberately out of scope of this file — see *Questions & Comments*.
+`TopicMessageSubmit` and the HIP-991 custom-fee fields (`customFees`, `feeScheduleAuthority`,
+`feeExemptAuthorities`) are deliberately out of scope of this file — see *Questions & Comments*.
 
 ### Signing requirements (topic lifecycle)
 
 | Transaction      | Signers required                                                                                              |
 |------------------|---------------------------------------------------------------------------------------------------------------|
-| `TopicCreate`    | the *payer*; **and** the new `adminKey` if it is set (anti-spoofing: cannot bind another party's key as admin without their consent); **and** the `autoRenewAccount` if it is set and differs from the payer. The `submitKey` does **not** need to sign creation — it gates only future submits, no spoofing risk. |
-| `TopicUpdate`    | the *payer*; **and** the topic's *current* `adminKey`; **and**, if `adminKey` itself is being rotated, the *new* key; **and**, if `autoRenewAccount` is set/changed to a different account, that new account |
-| `TopicDelete`    | the *payer*; **and** the topic's current `adminKey` (an immutable topic — `adminKey` unset — cannot be deleted; the request fails with `UNAUTHORIZED`) |
+| `TopicCreate`    | the *payer*; **and** the new `adminAuthority` if it is set (anti-spoofing: cannot bind another party's key as admin without their consent); **and** the `autoRenewAccount` if it is set and differs from the payer. The `submitAuthority` does **not** need to sign creation — it gates only future submits, no spoofing risk. |
+| `TopicUpdate`    | the *payer*; **and** the topic's *current* `adminAuthority`; **and**, if `adminAuthority` itself is being rotated, the *new* key; **and**, if `autoRenewAccount` is set/changed to a different account, that new account |
+| `TopicDelete`    | the *payer*; **and** the topic's current `adminAuthority` (an immutable topic — `adminAuthority` unset — cannot be deleted; the request fails with `UNAUTHORIZED`) |
 
 When the operator holds every required key, `signWithOperatorAndSubmit(client)` suffices.
 Multi-key flows go through the same `signWithOperator(client).sign(...)` pattern shown in
@@ -46,34 +46,34 @@ Multi-key flows go through the same `signWithOperator(client).sign(...)` pattern
 The general rule: a key field on a create transaction must sign **if** binding it would grant
 that key authority over a real asset (admin / auto-renew payer / treasury / ...). A key field
 that only gates *future* permissioned operations and confers no liability or authority right
-now (here: `submitKey`) does not need to sign creation.
+now (here: `submitAuthority`) does not need to sign creation.
 
 ### Mutability and "clearing" keys / auto-renew
 
 `TopicUpdate` distinguishes "leave unchanged" from "clear":
 
 - A `@@nullable` field set to **null** (or never set on the builder) means *leave unchanged*.
-- Clearing an optional key (e.g. removing `adminKey` to make the topic immutable, or removing
-  `submitKey` to make the topic public) is currently modelled by passing an explicit
-  *empty-key sentinel*. The exact sentinel depends on the eventual `Key` sum type and is
-  flagged in *Questions & Comments* — V2 SDKs use an empty `KeyList`, but this V3 spec does
-  not yet have `KeyList`.
+- `adminAuthority` / `submitAuthority` are now the `Authority` authorization type (see
+  [`authority.md`](../base/authority.md) / [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md)).
+  Clearing an optional key (e.g. removing `adminAuthority` to make the topic immutable, or removing
+  `submitAuthority` to make the topic public) is a future write-side `KeyUpdate` operation (per
+  ADR-0004), not expressible as an `Authority` value — see *Questions & Comments*.
 
 ## API Schema
 
 ```
 namespace consensusnode.transactions.topics
 requires {Address, AccountId} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Receipt, Transaction} from consensusnode.transactions
 
 // Creates a new topic. Both keys are optional:
-//   - adminKey unset  → topic is immutable (no update / delete possible)
-//   - submitKey unset → topic is public (anyone may submit messages)
+//   - adminAuthority unset  → topic is immutable (no update / delete possible)
+//   - submitAuthority unset → topic is public (anyone may submit messages)
 @@finalType
 TopicCreateTransaction extends Transaction<TopicCreateReceipt> {
-    @@immutable @@nullable adminKey: PublicKey          // controls update / delete; unset → immutable topic; must sign the create transaction when set (anti-spoofing)
-    @@immutable @@nullable submitKey: PublicKey         // controls message submission; unset → public topic; does NOT need to sign creation
+    @@immutable @@nullable adminAuthority: Authority          // controls update / delete; unset → immutable topic; must sign the create transaction when set (anti-spoofing)
+    @@immutable @@nullable submitAuthority: Authority         // controls message submission; unset → public topic; does NOT need to sign creation
     @@immutable @@nullable topicMemo: string            // short human-readable label (max 100 chars)
     @@immutable @@nullable autoRenewPeriod: seconds     // protocol default applies when unset
     @@immutable @@nullable autoRenewAccount: AccountId  // pays auto-renewal; must sign the create transaction if set
@@ -85,13 +85,13 @@ TopicCreateReceipt extends Receipt {
 }
 
 // Updates one or more of a topic's mutable fields. Every nullable field is "leave unchanged"
-// when null. Requires the topic's current adminKey to sign; an immutable topic (no adminKey)
+// when null. Requires the topic's current adminAuthority to sign; an immutable topic (no adminAuthority)
 // cannot be updated.
 @@finalType
 TopicUpdateTransaction extends Transaction<TopicUpdateReceipt> {
     @@immutable topicId: Address
-    @@immutable @@nullable adminKey: PublicKey          // when set, replaces the admin key; the new key must also sign
-    @@immutable @@nullable submitKey: PublicKey         // when set, replaces the submit key
+    @@immutable @@nullable adminAuthority: Authority          // when set, replaces the admin key; the new key must also sign
+    @@immutable @@nullable submitAuthority: Authority         // when set, replaces the submit key
     @@immutable @@nullable topicMemo: string
     @@immutable @@nullable expirationTime: zonedDateTime
     @@immutable @@nullable autoRenewPeriod: seconds
@@ -102,8 +102,8 @@ TopicUpdateTransaction extends Transaction<TopicUpdateReceipt> {
 TopicUpdateReceipt extends Receipt {
 }
 
-// Deletes a topic. Only possible if the topic has an adminKey (an immutable topic cannot be
-// deleted). The adminKey must sign.
+// Deletes a topic. Only possible if the topic has an adminAuthority (an immutable topic cannot be
+// deleted). The adminAuthority must sign.
 @@finalType
 TopicDeleteTransaction extends Transaction<TopicDeleteReceipt> {
     @@immutable topicId: Address
@@ -118,7 +118,7 @@ TopicDeleteReceipt extends Receipt {
 
 ### Create a public, immutable topic
 
-No `adminKey`, no `submitKey`. Anyone may submit messages; no one — not even the creator —
+No `adminAuthority`, no `submitAuthority`. Anyone may submit messages; no one — not even the creator —
 can ever change the topic's metadata or delete it. Useful for cases where the operator wants
 an unalterable audit log.
 
@@ -136,8 +136,8 @@ Address topicId = response.queryReceipt().topicId;
 
 ```
 new TopicCreateTransaction()
-    .adminKey(client.operatorPublicKey)
-    .submitKey(client.operatorPublicKey)
+    .adminAuthority(Authority.of(client.operatorPublicKey))
+    .submitAuthority(Authority.of(client.operatorPublicKey))
     .topicMemo("ops-events")
     .signWithOperatorAndSubmit(client);
 ```
@@ -149,9 +149,9 @@ Both the *current* and the *new* admin key must sign, in addition to the payer.
 ```
 PackedTransaction<...> packed = new TopicUpdateTransaction()
     .topicId(topicId)
-    .adminKey(newAdminPublicKey)
-    .signWithOperator(client)        // payer + current adminKey (operator)
-    .sign(newAdminSigner);           // new adminKey
+    .adminAuthority(Authority.of(newAdminPublicKey))
+    .signWithOperator(client)        // payer + current adminAuthority (operator)
+    .sign(newAdminSigner);           // new adminAuthority
 
 packed.submit(client);
 ```
@@ -166,25 +166,23 @@ new TopicDeleteTransaction()
 
 ## Questions & Comments
 
-- **`adminKey` / `submitKey` are typed as `PublicKey`, not `Key`.** Same placeholder typing
-  as in [`transactions-files.md`](transactions-files.md): HAPI takes a `Key` (sum type over
-  `PublicKey` / `ContractID` / `KeyList` / `ThresholdKey`), so the current single-key shape
-  cannot express m-of-n custody, contract-controlled topics, or nested key structures. The
-  `Key` sum type is tracked in [`missing-features.md`](../../missing-features.md) section
-  2.2 as the prerequisite; once it lands, both fields should be retyped to `Key`.
+- **`adminAuthority` / `submitAuthority` are the `Authority` authorization type.** Both fields are an
+  `Authority` — a single key, a contract, or an m-of-n threshold (`AuthorityList`) —
+  introduced in [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md) and
+  specified in [`authority.md`](../base/authority.md), resolving the former `PublicKey`
+  placeholder.
 
-- **Clearing `adminKey` / `submitKey` / `autoRenewAccount` on update — partial coverage.**
+- **Clearing `adminAuthority` / `submitAuthority` / `autoRenewAccount` on update — partial coverage.**
   HAPI distinguishes "leave unchanged" from "remove" via sentinel values that the consensus
   node interprets server-side:
   - For `Address`-typed fields (`autoRenewAccount`): the sentinel is `0.0.0`, exposed as
     [`ZERO_ADDRESS`](../base/ledger.md) in the `ledger` namespace. Pass `ZERO_ADDRESS` to
     `autoRenewAccount(...)` on an update to drop the auto-renew account.
-  - For `Key`-typed fields (`adminKey`, `submitKey`): the sentinel is an empty `KeyList`,
-    which the V3 spec cannot yet express because `Key` / `KeyList` are still missing (see
-    [`missing-features.md`](../../missing-features.md) section 2.2). Until those land,
-    there is no way to e.g. turn a private topic public via update or freeze an updatable
-    topic by removing its admin key. Once `Key` exists, an explicit `Key.EMPTY` value
-    (mapping to `KeyList{keys: []}`) is the natural counterpart to `ZERO_ADDRESS`.
+  - For the `Authority`-typed fields (`adminAuthority`, `submitAuthority`): clearing — e.g. turning a
+    private topic public via update or freezing an updatable topic by removing its admin key —
+    is a future write-side `KeyUpdate` operation (per
+    [ADR-0004](../../docs/adr/0004-authority-authorization-sum-type.md)), not expressible as
+    an `Authority` value.
 
   V2 SDKs additionally expose dedicated `clearAutoRenewAccountId()` / `clearAdminKey()` /
   `clearSubmitKey()` methods that hide the sentinel from callers. V3 could later layer the
@@ -198,8 +196,8 @@ new TopicDeleteTransaction()
   [`missing-features.md`](../../missing-features.md) section 1.5.
 
 - **HIP-991 custom-fee fields are out of scope.** `TopicCreate` / `TopicUpdate` in HAPI
-  carry `customFees: list<FixedCustomFee>`, `feeScheduleKey: Key`, and
-  `feeExemptKeyList: list<Key>` for revenue-generating topics. These are tracked in
+  carry `customFees: list<FixedCustomFee>`, `feeScheduleAuthority: Key`, and
+  `feeExemptAuthorities: list<Key>` for revenue-generating topics. These are tracked in
   [`missing-features.md`](../../missing-features.md) sections 1.5 and 2.3 and depend on a
   write-side custom-fee model that does not yet exist in the spec. Adding them here is
   additive and breaks nothing.

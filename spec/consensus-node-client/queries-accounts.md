@@ -31,7 +31,7 @@ returns the richer `PaidQueryResponse<...>` with the actually-paid cost.
 ```
 namespace consensusnode.queries.accounts
 requires {Address, AccountId, ContractId, EvmAddress} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {NativeToken} from nativeToken
 requires {Query, PaidQuery} from consensusnode.queries
 requires {Receipt, Record} from consensusnode.transactions
@@ -57,7 +57,7 @@ type AccountInfo {
     @@immutable accountId: AccountId
     @@immutable @@nullable evmAddress: EvmAddress                     // 20-byte EVM-address alias if assigned
     @@immutable balance: NativeToken<ANY, ANY>
-    @@immutable @@nullable key: PublicKey
+    @@immutable @@nullable authority: Authority
     @@immutable @@nullable accountMemo: string
     @@immutable expirationTime: zonedDateTime
     @@immutable @@nullable autoRenewPeriod: seconds
@@ -134,7 +134,7 @@ PaidQueryResponse<AccountInfo> response = new AccountInfoQuery()
     .submit(client);
 
 AccountInfo info = response.value;
-PublicKey   key  = info.key;
+Authority authority = info.authority;
 NativeToken<ANY, ANY> paid = response.cost;     // what was actually charged
 ```
 

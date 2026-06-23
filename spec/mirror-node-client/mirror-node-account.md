@@ -7,7 +7,7 @@
 ```
 namespace mirrornode.account
 requires {AccountId, EvmAddress, MirrorNode} from ledger
-requires {PublicKey} from keys
+requires {Authority} from authority
 requires {Page} from common
 
 @@finalType
@@ -19,7 +19,7 @@ AccountInfo {
     @@immutable ethereumNonce: int64
     @@immutable pendingReward: int64                                 // tinybars receivable in the next staking payout
     @@immutable @@nullable alias: bytes                              // HIP-32 public-key alias (serialised protobuf Key bytes)
-    @@immutable @@nullable key: PublicKey
+    @@immutable @@nullable authority: Authority
     @@immutable @@nullable accountMemo: string
     @@immutable @@nullable createdTimestamp: zonedDateTime
     @@immutable @@nullable expiryTimestamp: zonedDateTime

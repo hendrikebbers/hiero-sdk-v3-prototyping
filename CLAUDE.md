@@ -33,6 +33,7 @@ spec/                           # The actual V3 public-API specifications, writt
     ledger.md (ledger)          #   Ledger, Address, ConsensusNode, MirrorNode
     ledger-config.md (ledger.config)
     keys.md (keys)              #   Keys + key import/export (PKCS#8, SPKI, DER, PEM)
+    authority.md (authority) #  Authorization model (HAPI Key): Authority sum type (public key / contract / m-of-n)
     native-token.md (nativeToken + hbar)  # NativeToken abstraction + Hedera-specific HBAR implementation
     token.md (token)              #   HTS token classifier enums (TokenType, TokenSupplyType); future home for TokenId / NftId
     grpc.md (grpc)
