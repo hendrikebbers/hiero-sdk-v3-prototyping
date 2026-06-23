@@ -18,14 +18,6 @@ Status legend:
 
 ### 1.2 Token service (HTS)
 
-Specified: core lifecycle
-([`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md)); management
-transactions — `TokenWipe`, `TokenFreeze` / `TokenUnfreeze`, `TokenGrantKyc` / `TokenRevokeKyc`,
-`TokenPause` / `TokenUnpause`, `TokenUpdateNfts` (HIP-657)
-([`transactions-tokens-management.md`](spec/consensus-node-client/transactions-tokens-management.md));
-HIP-904 airdrops — `TokenAirdrop` / `TokenClaimAirdrop` / `TokenCancelAirdrop` / `TokenReject`
-([`transactions-tokens-airdrops.md`](spec/consensus-node-client/transactions-tokens-airdrops.md)).
-
 Still open:
 
 - `TokenFeeScheduleUpdate` — sole payload is the custom-fee schedule; blocked on the write-side
