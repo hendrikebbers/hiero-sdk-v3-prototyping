@@ -45,8 +45,12 @@ Open: chunked-append model (per-chunk receipts vs. single-receipt facade) — tr
 
 ### 1.6 Schedule service (HIP-755 long-term)
 
-`ScheduleCreate`, `ScheduleSign`, `ScheduleDelete` + `customFeeLimits` —
-**all :x:**
+`ScheduleCreate`, `ScheduleSign`, `ScheduleDelete` (incl. HIP-755 long-term
+`expirationTime` / `waitForExpiry`) — :white_check_mark: specified in
+[`transactions-schedule.md`](spec/consensus-node-client/transactions-schedule.md).
+
+Still missing: `customFeeLimits` (HIP-991) — :x: blocked on the write-side custom-fee model
+(§3.3), same blocker as `TokenFeeScheduleUpdate`.
 
 ### 1.7 Utility
 
@@ -76,8 +80,21 @@ surface (`signableBodies()`, `sign(list<NodeSignature>)`). Still missing:
 | `setRegenerateTransactionId(boolean)` | :x: will NOT land in V3 — see note below (and [`transactions.md`](spec/consensus-node-client/transactions.md) *Questions & Comments*) |
 | `batchify(Client, Key)` | :x: |
 | Jumbo-tx size (HIP-1300): `bodySize`, `bodySizeAllChunks` | :x: |
+| `Response<$$Receipt> response(transactionId, receiptType)` (query-by-id for a typed receipt) | :x: see note below |
 
-Notes on the two annotated rows:
+Notes on the annotated rows:
+
+- **`Response<$$Receipt> response(transactionId, receiptType)` — query a typed receipt by id.**
+  Today typed receipts are only reachable through the `Response<$$Receipt>` returned by `submit()`;
+  there is no way to obtain a `Response<$$Receipt>` for an arbitrary `TransactionId`. The schedule
+  service surfaced the gap: a `ScheduleCreate` captures a `Transaction<ANY>` inner transaction, and
+  `scheduledTransactionId` is a plain `TransactionId` with no link to the inner receipt type, so the
+  scheduled execution's outcome cannot be read in a typed way. The fix is a general
+  `Response<$$Receipt> response(transactionId, receiptType)` (a `type` argument supplies the receipt
+  type, mapped via the SPI `TransactionSupport`) — it benefits every transaction, not just schedules.
+  See [`transactions-schedule.md`](spec/consensus-node-client/transactions-schedule.md)
+  *Questions & Comments*.
+
 
 - **`getTransactionHash()` / `getTransactionHashPerNode()` — deliberately deferred.** These are
   pure SDK conveniences that expose the standard Hedera on-chain transaction hash (SHA-384 of
@@ -214,16 +231,17 @@ cleanly.
 | `topicSequenceNumber` + `topicRunningHash` (+ `topicRunningHashVersion`) | `TopicMessageSubmit` | `TopicMessageSubmitReceipt` (file pending — §1.5) |
 | `totalSupply` | `TokenMint`, `TokenBurn`, `TokenWipe` | `TokenMintReceipt` :white_check_mark: / `TokenBurnReceipt` :white_check_mark: ([`transactions-tokens.md`](spec/consensus-node-client/transactions-tokens.md)); add to `TokenWipeReceipt` when it lands |
 | `serials` | `TokenMint` (NFT only) | `TokenMintReceipt` :white_check_mark: |
-| `scheduleId` (+ `scheduledTransactionId`) | `ScheduleCreate` | `ScheduleCreateReceipt` (file pending — §1.6) |
+| `scheduleId` (+ `scheduledTransactionId`) | `ScheduleCreate` | `ScheduleCreateReceipt` :white_check_mark: ([`transactions-schedule.md`](spec/consensus-node-client/transactions-schedule.md)); `scheduledTransactionId` also on `ScheduleSignReceipt` |
 | `evmAddress` | `AccountCreate` (alias / auto-create path) **and** `ContractCreate` | `AccountCreateReceipt` (nullable — only populated on the alias path) **and** `ContractCreateReceipt` (file pending — §1.4) |
 | `prngBytes` **xor** `prngNumber` | `UtilPrng` (HIP-351) — one of the two depending on the `range` parameter | `PrngReceipt`, modelled as `@@oneOf(prngBytes, prngNumber)` (file pending — §1.7) |
 
 These seven fields are routine: each rides on the existing
-typed-receipt-per-transaction pattern. Five of them are still pending only
+typed-receipt-per-transaction pattern. Four of them are still pending only
 because the transaction itself is still pending (`TopicMessageSubmit`,
-`ScheduleCreate`, `UtilPrng`, plus the relevant fields on `AccountCreate` /
+`UtilPrng`, plus the relevant fields on `AccountCreate` /
 `ContractCreate` receipts); add the field at the same time the receipt is
-specified. `totalSupply` + `serials` on the Token-Mint/Burn receipts are
+specified. `totalSupply` + `serials` on the Token-Mint/Burn receipts and
+`scheduleId` + `scheduledTransactionId` on the schedule receipts are
 already in.
 
 #### Record-level fields (cross-cutting OR on a typed Record)
