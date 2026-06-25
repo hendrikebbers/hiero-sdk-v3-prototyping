@@ -198,6 +198,16 @@ Record<$$Receipt extends Receipt> {
 // Factory methods for transaction loading
 @@static PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> fromBytes(bytes: bytes)
 
+// Reconstructs a client-bound Response for a transaction that was submitted elsewhere — e.g. the
+// inner transaction of a schedule (identified by ScheduleCreateReceipt.scheduledTransactionId),
+// which executes on the network without the caller ever holding a Response for it.
+//
+// `transactionType` is the type token of the Transaction<$$Receipt> subtype, so $$Receipt is bound
+// and the returned Response is typed (not Response<ANY>); the SDK resolves the matching
+// TransactionSupport (consensusnode.transactions.spi) to parse the proto receipt/record into the
+// typed $$Receipt. This call makes no network request — querying happens lazily through the
+// returned Response's queryReceipt() / queryRecord(), exactly as for a Response from submit().
+@@static Response<$$Receipt> getResponse(transactionId: TransactionId, transactionType: type, client: HieroClient)
 ```
 
 ## Examples

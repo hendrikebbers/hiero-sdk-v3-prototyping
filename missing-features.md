@@ -43,9 +43,9 @@ Open: chunked-append model (per-chunk receipts vs. single-receipt facade) — tr
 `FileAppend`). HIP-991 custom fees on topics (`customFees`, `feeScheduleAuthority`,
 `feeExemptAuthorities`) — :x: (depends on write-side custom-fee model from §3.3).
 
-### 1.6 Schedule service (HIP-755 long-term)
+### 1.6 Schedule service (HIP-423 long-term)
 
-`ScheduleCreate`, `ScheduleSign`, `ScheduleDelete` (incl. HIP-755 long-term
+`ScheduleCreate`, `ScheduleSign`, `ScheduleDelete` (incl. HIP-423 long-term
 `expirationTime` / `waitForExpiry`) — :white_check_mark: specified in
 [`transactions-schedule.md`](spec/consensus-node-client/transactions-schedule.md).
 
@@ -80,20 +80,23 @@ surface (`signableBodies()`, `sign(list<NodeSignature>)`). Still missing:
 | `setRegenerateTransactionId(boolean)` | :x: will NOT land in V3 — see note below (and [`transactions.md`](spec/consensus-node-client/transactions.md) *Questions & Comments*) |
 | `batchify(Client, Key)` | :x: |
 | Jumbo-tx size (HIP-1300): `bodySize`, `bodySizeAllChunks` | :x: |
-| `Response<$$Receipt> response(transactionId, receiptType)` (query-by-id for a typed receipt) | :x: see note below |
+| `Response<$$Receipt> getResponse(transactionId, transactionType, client)` (query-by-id for a typed receipt) | :white_check_mark: see note below |
 
 Notes on the annotated rows:
 
-- **`Response<$$Receipt> response(transactionId, receiptType)` — query a typed receipt by id.**
-  Today typed receipts are only reachable through the `Response<$$Receipt>` returned by `submit()`;
-  there is no way to obtain a `Response<$$Receipt>` for an arbitrary `TransactionId`. The schedule
+- **`Response<$$Receipt> getResponse(transactionId, transactionType, client)` — query a typed
+  receipt by id.** Specified in
+  [`transactions.md`](spec/consensus-node-client/transactions.md) as a `@@static` factory next to
+  `fromBytes`. Previously typed receipts were only reachable through the `Response<$$Receipt>`
+  returned by `submit()`, with no way to obtain one for an arbitrary `TransactionId`. The schedule
   service surfaced the gap: a `ScheduleCreate` captures a `Transaction<ANY>` inner transaction, and
-  `scheduledTransactionId` is a plain `TransactionId` with no link to the inner receipt type, so the
-  scheduled execution's outcome cannot be read in a typed way. The fix is a general
-  `Response<$$Receipt> response(transactionId, receiptType)` (a `type` argument supplies the receipt
-  type, mapped via the SPI `TransactionSupport`) — it benefits every transaction, not just schedules.
-  See [`transactions-schedule.md`](spec/consensus-node-client/transactions-schedule.md)
-  *Questions & Comments*.
+  `scheduledTransactionId` is a plain `TransactionId` with no link to the inner receipt type. The
+  factory takes the **transaction** type token (not the receipt type) so `$$Receipt` is bound and
+  the existing SPI `getTransactionSupport(transactionType)` lookup resolves the parser without a new
+  reverse index; it is placed as a `@@static` in `consensusnode.transactions` (carrying `client` as
+  a parameter) rather than on `HieroClient` to avoid a circular `client` ⇄ `transactions` namespace
+  dependency. It makes no network call — querying is lazy via the returned Response. Benefits every
+  transaction, not just schedules.
 
 
 - **`getTransactionHash()` / `getTransactionHashPerNode()` — deliberately deferred.** These are
@@ -444,7 +447,7 @@ setup flexibility:
    common queries (contract / schedule info). The transaction lifecycle, transfers,
    token/topic/file core, and the account/file/token/topic info queries have landed,
    so the pattern is established for the rest.
-2. **Modern HIPs:** Schedule (HIP-755), airdrops (HIP-904), DAB node ops
+2. **Modern HIPs:** Schedule (HIP-423), airdrops (HIP-904), DAB node ops
    (HIP-869 / HIP-1046 — land in `consensus-node-admin-client`, §2),
    custom fees on topics (HIP-991), batch (HIP-551),
    mutable NFT metadata (HIP-657).

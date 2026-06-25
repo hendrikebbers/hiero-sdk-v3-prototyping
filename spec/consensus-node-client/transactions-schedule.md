@@ -11,7 +11,7 @@ transaction before it executes).
 A *scheduled transaction* is an ordinary transaction whose execution is deferred. `ScheduleCreate`
 captures an **inner transaction** and persists its body on the network under a new `scheduleId`.
 The inner transaction executes automatically once the network has collected every signature its
-own authorization requires (or, for HIP-755 long-term schedules, when the schedule expires — see
+own authorization requires (or, for HIP-423 long-term schedules, when the schedule expires — see
 `waitForExpiry`).
 
 ### The inner transaction
@@ -75,8 +75,8 @@ ScheduleCreateTransaction extends Transaction<ScheduleCreateReceipt> {
     @@immutable @@nullable adminKey: Authority             // may delete the schedule before execution; unset → schedule is immutable and cannot be deleted
     @@immutable @@nullable payerAccountId: AccountId       // pays the fee of the inner transaction when it executes; null → the payer of this ScheduleCreate pays it
     @@immutable @@nullable scheduleMemo: string            // free-form memo on the schedule entity
-    @@immutable @@nullable expirationTime: zonedDateTime   // HIP-755 long-term: when the schedule expires
-    @@immutable @@default(false) waitForExpiry: bool       // HIP-755 long-term: when true, execute only at expirationTime even if the required signatures are collected earlier
+    @@immutable @@nullable expirationTime: zonedDateTime   // HIP-423 long-term: when the schedule expires
+    @@immutable @@default(false) waitForExpiry: bool       // HIP-423 long-term: when true, execute only at expirationTime even if the required signatures are collected earlier
 }
 
 @@finalType
@@ -161,6 +161,22 @@ Response<ScheduleSignReceipt> response = packed.submit(client);
 TransactionId executed = response.queryReceipt().scheduledTransactionId;
 ```
 
+### Read the executed inner transaction's receipt
+
+Once the schedule has executed, the caller only holds `scheduledTransactionId` — never a
+`Response` for the inner transaction. `Transaction.getResponse(...)` reconstructs a typed,
+client-bound `Response` from that id plus the inner transaction's type token, so the inner
+receipt comes back typed (here `TransferReceipt`).
+
+```
+TransactionId scheduledTransactionId = ...;   // from ScheduleCreateReceipt / ScheduleSignReceipt
+
+Response<TransferReceipt> innerResponse =
+    Transaction.getResponse(scheduledTransactionId, TransferTransaction, client);
+
+TransferReceipt innerReceipt = innerResponse.queryReceipt();
+```
+
 ### Delete a schedule before it executes
 
 The holder of the schedule's `adminKey` removes it before the remaining signatures arrive.
@@ -180,15 +196,13 @@ new ScheduleDeleteTransaction()
   [`transactions-tokens-management.md`](transactions-tokens-management.md)). It will be added once
   the write-side `CustomFee` hierarchy exists.
 
-- **Typed reading of the scheduled execution's outcome is out of scope.** The inner transaction is
-  `Transaction<ANY>`, so `scheduledTransactionId` is a plain `TransactionId` with no compile-time
-  link to the inner receipt type. Reading the inner transaction's receipt/record once it executes
-  (possibly much later for long-term schedules) needs a *query-by-id* capability that the current
-  model lacks — typed receipts are only reachable through the `Response<$$Receipt>` returned by
-  `submit()`. A general `Response<$$Receipt> response(transactionId, receiptType)` on the client /
-  [`transactions.md`](transactions.md) (using the SPI `TransactionSupport` to map the type) is the
-  prerequisite; until it exists, callers read the scheduled execution untyped via the Mirror Node.
-  Tracked in [`missing-features.md`](../../missing-features.md) §1.9.
+- **Reading the scheduled execution's outcome** uses the general
+  `Transaction.getResponse(transactionId, transactionType, client)` factory in
+  [`transactions.md`](transactions.md). Because the inner transaction is captured as
+  `Transaction<ANY>`, `scheduledTransactionId` carries no compile-time link to the inner receipt
+  type; the caller re-supplies the inner transaction's type token to `getResponse(...)` and gets a
+  typed `Response<$$Receipt>` back (the SDK resolves the matching `TransactionSupport`). See the
+  *Read the executed inner transaction's receipt* example above.
 
 - **`ScheduleInfoQuery` is not specified here** — read-side schedule state belongs with the other
   consensus-node queries (still missing, see [`missing-features.md`](../../missing-features.md)
