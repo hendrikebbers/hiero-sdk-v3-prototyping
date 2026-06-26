@@ -54,7 +54,9 @@ Still missing: `customFeeLimits` (HIP-991) — :x: blocked on the write-side cus
 
 ### 1.7 Utility
 
-- `PrngTransaction` (HIP-351) — :x:
+- `PrngTransaction` (HIP-351) — :white_check_mark: specified in
+  [`transactions-utility.md`](spec/consensus-node-client/transactions-utility.md) (incl. `PrngReceipt`
+  as `@@oneOf(prngNumber, prngBytes)`).
 - `BatchTransaction` (HIP-551, with `batchify()` on inner transactions) — :x:
 - Hiero Hooks (HIP-1195): `HookStoreTransaction`, `EvmHook`, `EvmHookCall`,
   `HookCreationDetails`, ... — :x:
@@ -65,7 +67,8 @@ The base abstractions (`Query` / `PaidQuery` / `QueryResponse` / `PaidQueryRespo
 account / file / token / topic info queries are specified. Still missing:
 
 - `ContractCallQuery` (local EVM call), `ContractInfoQuery`, `ContractBytecodeQuery`
-- `ScheduleInfoQuery`
+- `ScheduleInfoQuery` — :white_check_mark: specified in
+  [`queries-schedule.md`](spec/consensus-node-client/queries-schedule.md)
 - `MirrorNodeContractCallQuery` (HIP-1027), `MirrorNodeContractEstimateGasQuery`
   — these belong on `mirrornode.contract.ContractRepository`, not in `consensusnode.queries`
 
@@ -236,16 +239,15 @@ cleanly.
 | `serials` | `TokenMint` (NFT only) | `TokenMintReceipt` :white_check_mark: |
 | `scheduleId` (+ `scheduledTransactionId`) | `ScheduleCreate` | `ScheduleCreateReceipt` :white_check_mark: ([`transactions-schedule.md`](spec/consensus-node-client/transactions-schedule.md)); `scheduledTransactionId` also on `ScheduleSignReceipt` |
 | `evmAddress` | `AccountCreate` (alias / auto-create path) **and** `ContractCreate` | `AccountCreateReceipt` (nullable — only populated on the alias path) **and** `ContractCreateReceipt` (file pending — §1.4) |
-| `prngBytes` **xor** `prngNumber` | `UtilPrng` (HIP-351) — one of the two depending on the `range` parameter | `PrngReceipt`, modelled as `@@oneOf(prngBytes, prngNumber)` (file pending — §1.7) |
+| `prngBytes` **xor** `prngNumber` | `UtilPrng` (HIP-351) — one of the two depending on the `range` parameter | `PrngReceipt` :white_check_mark:, modelled as `@@oneOf(prngNumber, prngBytes)` ([`transactions-utility.md`](spec/consensus-node-client/transactions-utility.md)) |
 
 These seven fields are routine: each rides on the existing
-typed-receipt-per-transaction pattern. Four of them are still pending only
-because the transaction itself is still pending (`TopicMessageSubmit`,
-`UtilPrng`, plus the relevant fields on `AccountCreate` /
-`ContractCreate` receipts); add the field at the same time the receipt is
-specified. `totalSupply` + `serials` on the Token-Mint/Burn receipts and
-`scheduleId` + `scheduledTransactionId` on the schedule receipts are
-already in.
+typed-receipt-per-transaction pattern. Three of them are still pending only
+because the transaction itself is still pending (`TopicMessageSubmit`, plus the
+relevant fields on `AccountCreate` / `ContractCreate` receipts); add the field
+at the same time the receipt is specified. `totalSupply` + `serials` on the
+Token-Mint/Burn receipts, `scheduleId` + `scheduledTransactionId` on the schedule
+receipts, and `prngBytes` / `prngNumber` on `PrngReceipt` are already in.
 
 #### Record-level fields (cross-cutting OR on a typed Record)
 
@@ -444,14 +446,14 @@ setup flexibility:
 1. **SDK parity (must-have):** the remaining write transactions — contract
    transactions + `EthereumTransaction`, `TopicMessageSubmit`, the token admin
    operations (wipe / freeze / KYC / pause / fee-schedule) — and the remaining
-   common queries (contract / schedule info). The transaction lifecycle, transfers,
+   common queries (contract info; schedule info has landed). The transaction lifecycle, transfers,
    token/topic/file core, and the account/file/token/topic info queries have landed,
    so the pattern is established for the rest.
 2. **Modern HIPs:** Schedule (HIP-423), airdrops (HIP-904), DAB node ops
    (HIP-869 / HIP-1046 — land in `consensus-node-admin-client`, §2),
    custom fees on topics (HIP-991), batch (HIP-551),
    mutable NFT metadata (HIP-657).
-3. **Auxiliary:** PRNG, `Freeze` / `SystemDelete` (also `consensus-node-admin-client`,
+3. **Auxiliary:** `Freeze` / `SystemDelete` (also `consensus-node-admin-client`,
    §2), allowances, staking transactions, hooks (HIP-1195),
    `Mnemonic` + `KeyList` / `ThresholdKey`, full custom-fee hierarchy for builders.
 4. **Mirror node:** blocks, schedules, contracts

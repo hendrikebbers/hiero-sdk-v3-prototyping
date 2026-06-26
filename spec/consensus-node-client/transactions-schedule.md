@@ -205,5 +205,4 @@ new ScheduleDeleteTransaction()
   *Read the executed inner transaction's receipt* example above.
 
 - **`ScheduleInfoQuery` is not specified here** — read-side schedule state belongs with the other
-  consensus-node queries (still missing, see [`missing-features.md`](../../missing-features.md)
-  §1.8).
+  consensus-node queries, specified in [`queries-schedule.md`](queries-schedule.md).
