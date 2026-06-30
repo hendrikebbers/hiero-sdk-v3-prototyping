@@ -57,7 +57,13 @@ Still missing: `customFeeLimits` (HIP-991) — :x: blocked on the write-side cus
 - `PrngTransaction` (HIP-351) — :white_check_mark: specified in
   [`transactions-utility.md`](spec/consensus-node-client/transactions-utility.md) (incl. `PrngReceipt`
   as `@@oneOf(prngNumber, prngBytes)`).
-- `BatchTransaction` (HIP-551, with `batchify()` on inner transactions) — :x:
+- `BatchTransaction` (HIP-551, with `batchify()` on inner transactions) — :white_check_mark: draft
+  specified in [`transactions-batch.md`](spec/consensus-node-client/transactions-batch.md). v2
+  `batchify(client, batchKey)` is decomposed into the V3 lifecycle: `packForBatch(payer, batchKey)` /
+  `signForBatchWithOperator(client, batchKey)` on `Transaction` (single body, `nodeAccountID =
+  0.0.0`), with the `batchKey` (`Authority`) taken as a required parameter so that a missing or
+  misplaced batch key is unrepresentable rather than network-rejected. See open questions in that
+  file's *Questions & Comments*.
 - Hiero Hooks (HIP-1195): `HookStoreTransaction`, `EvmHook`, `EvmHookCall`,
   `HookCreationDetails`, ... — :x:
 
@@ -72,6 +78,24 @@ account / file / token / topic info queries are specified. Still missing:
 - `MirrorNodeContractCallQuery` (HIP-1027), `MirrorNodeContractEstimateGasQuery`
   — these belong on `mirrornode.contract.ContractRepository`, not in `consensusnode.queries`
 
+Two HAPI queries are live (not deprecated) but currently unspecified, each pending a design
+decision before we either spec or formally drop them:
+
+- **Open — `GetBySolidityID` (Solidity/EVM address → entity id).** HAPI's `GetBySolidityIDQuery`
+  resolves a 20-byte Solidity/EVM address to the corresponding `AccountId` / `ContractId` /
+  `FileId`. It predates long-zero and EVM-alias addressing, and much of its purpose is now covered by
+  the typed EVM-address hierarchy in [`base/ledger.md`](spec/base/ledger.md) (`EvmCapableAddress` /
+  `EvmAddress`) plus mirror-node resolution. **Open question:** is there any flow that needs a
+  *consensus-node-side* address→id lookup (e.g. an entity the mirror node does not yet cover, or a
+  consistency/freshness requirement the mirror node cannot meet)? If not, it stays omitted; if yes,
+  it is a standard read query in `consensusnode.queries`. Resolve before specifying.
+- **Open — `GetAccountDetails` (`accountDetails`).** A **privileged** query returning extended
+  account detail (token relationships, allowances, …) beyond what `AccountInfoQuery` exposes; the
+  equivalent read is already served by the mirror node (§4). **Open questions:** (1) is there a
+  consensus-node-side need the mirror node cannot serve? (2) if yes, does it belong on the normal
+  `consensus-node-client`, or — because it is privileged — on the `consensus-node-admin-client`
+  (§2)? Resolve before specifying.
+
 ### 1.9 Features on `Transaction<...>` / `PackedTransaction<...>`
 
 The lifecycle (build → pack → sign → submit) is specified, including the offline / HSM signing
@@ -81,9 +105,10 @@ surface (`signableBodies()`, `sign(list<NodeSignature>)`). Still missing:
 | --- | --- |
 | `getTransactionHash()` / `getTransactionHashPerNode()` | :x: deliberately deferred — see note below |
 | `setRegenerateTransactionId(boolean)` | :x: will NOT land in V3 — see note below (and [`transactions.md`](spec/consensus-node-client/transactions.md) *Questions & Comments*) |
-| `batchify(Client, Key)` | :x: |
+| `batchify(Client, Key)` | :white_check_mark: draft — decomposed into `packForBatch(payer, batchKey)` / `signForBatchWithOperator(client, batchKey)` (batchKey a required parameter); see [`transactions-batch.md`](spec/consensus-node-client/transactions-batch.md) and §1.7 |
 | Jumbo-tx size (HIP-1300): `bodySize`, `bodySizeAllChunks` | :x: |
 | `Response<$$Receipt> getResponse(transactionId, transactionType, client)` (query-by-id for a typed receipt) | :white_check_mark: see note below |
+| `TransactionRecordQuery.setIncludeChildren(...)` / `setIncludeDuplicates(...)` (child- and duplicate-record retrieval) | :x: not specified — see note below |
 
 Notes on the annotated rows:
 
@@ -100,6 +125,26 @@ Notes on the annotated rows:
   a parameter) rather than on `HieroClient` to avoid a circular `client` ⇄ `transactions` namespace
   dependency. It makes no network call — querying is lazy via the returned Response. Benefits every
   transaction, not just schedules.
+
+- **Child-record / duplicate-record retrieval (`include_child_records`, `includeDuplicates`).**
+  HAPI's `TransactionGetRecordQuery` can return, alongside the queried record, (a) the records of
+  **child transactions** spawned while handling it and (b) the records of **duplicate** submissions
+  of the same `TransactionId`. V3's record-query surface (`Response.queryRecord()` and
+  `getResponse(...).queryRecord()` in
+  [`transactions.md`](spec/consensus-node-client/transactions.md)) exposes only the single record —
+  there is no opt-in for either. Not yet specified; the gap is one of scope, not a deliberate
+  omission. Three points for when it lands:
+  - The primary use case is **smart-contract** child transactions (e.g. HTS precompile calls spawned
+    inside a `ContractCall`), so it is naturally specified together with the contract service (§1.4)
+    rather than in isolation.
+  - Child and duplicate records are **heterogeneous** — a child of a contract call is a different
+    transaction type than its parent — so they cannot be typed `Record<$$Receipt>`; they would be
+    `Record<ANY>` (or `Record<Receipt>`), unlike the parent's typed record.
+  - It does **not** help atomic batches: batch inner transactions keep their own independent,
+    user-supplied `TransactionId`s and are not nonce-children of the batch, so `include_child_records`
+    against the batch's id does not return them (see
+    [`transactions-batch.md`](spec/consensus-node-client/transactions-batch.md) — they are read and
+    correlated individually via `parentConsensusTimestamp`).
 
 
 - **`getTransactionHash()` / `getTransactionHashPerNode()` — deliberately deferred.** These are
@@ -128,6 +173,39 @@ Notes on the annotated rows:
   ("pack + sign-with-operator + submit; on expiry, retry the whole cycle") may live in the
   `enterprise.service.*` layer where loss-of-signatures is moot. Full rationale in
   [`transactions.md`](spec/consensus-node-client/transactions.md) *Questions & Comments*.
+
+### 1.10 Deprecated / intentionally-omitted HAPI operations (coverage audit)
+
+A full diff of the HAPI protobufs (every `*_*.proto` operation in `hedera-protobufs/services`)
+against the V3 spec confirms that **every non-deprecated, client-submittable transaction and query
+is either specified or tracked above.** The operations below are deliberately **not** planned for
+V3; they are listed here so the audit is closed and a reader can tell they were considered rather
+than overlooked.
+
+Transactions:
+
+| HAPI operation | Reason omitted |
+| --- | --- |
+| `CryptoAddLiveHash` / `CryptoDeleteLiveHash` | Deprecated legacy "live hash" (claims) feature; unused on modern networks. |
+| `NodeStakeUpdate` | System-generated at the staking-period boundary, not client-submittable — outside any SDK surface. |
+
+Queries:
+
+| HAPI query | Reason omitted |
+| --- | --- |
+| `GetByKey` | Deprecated. |
+| `CryptoGetLiveHash` | Deprecated (pairs with the live-hash transactions above). |
+| `CryptoGetProxyStakers` (`cryptoGetProxyStakers`) | Deprecated. |
+| `ContractGetRecords` | Deprecated. |
+| `TokenGetAccountNftInfos` / `TokenGetNftInfos` | Deprecated (bulk NFT queries); use `TokenNftInfoQuery` or the mirror node. |
+| `NetworkGetExecutionTime` | Deprecated. |
+| `TransactionGetFastRecord` | Not deprecated but superfluous in V3 — the normal record path (`Response.queryRecord()` / `getResponse(...)`, §1.9) covers it. |
+
+Note: `TransactionGetReceipt` and `TransactionGetRecord` are covered (via `Response.queryReceipt()` /
+`queryRecord()` and the `getResponse(...)` factory); the only open record-query gap is
+`include_child_records` / `includeDuplicates`, tracked in §1.9. Two further live-but-unspecified
+queries (`GetBySolidityID`, `GetAccountDetails`) are *not* omissions — each is an open design
+question tracked in §1.8.
 
 ---
 

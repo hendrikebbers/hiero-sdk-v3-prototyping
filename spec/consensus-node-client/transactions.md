@@ -103,6 +103,7 @@ deterministic ids for testing must be modelled by a different mechanism if neede
 namespace consensusnode.transactions
 requires {AccountId, TransactionId} from ledger
 requires {NativeToken, ExchangeRate} from nativeToken
+requires {Authority} from authority
 requires {Account, HieroClient, NodeSignature, Submittable, TransactionSigner} from consensusnode.client
 
 // Defines the status of a transaction. Since we can have custom transaction types based on custom
@@ -132,7 +133,7 @@ abstraction Transaction<$$Receipt extends Receipt> {
   @@nullable maxTransactionFee: NativeToken<ANY, ANY>
   @@nullable validDuration: seconds
   @@nullable memo: string
-  
+
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> pack(payer: Account, nodes: list<AccountId>)  
     
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> signWithOperator(client: HieroClient)
@@ -142,7 +143,41 @@ abstraction Transaction<$$Receipt extends Receipt> {
   PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> sign(payerId: AccountId, signer: TransactionSigner, nodes: list<AccountId>)
   
   @@async Response<$$Receipt> signWithOperatorAndSubmit(client: HieroClient)
-  
+
+  // Packs this transaction as the *inner* transaction of a BatchTransaction (HIP-551). Unlike
+  // pack(payer, nodes), this produces a single TransactionBody addressed to no consensus node
+  // (nodeAccountID = 0.0.0) instead of one body per target node — an inner batch transaction is
+  // never submitted to a node on its own; it is embedded into BatchTransaction.innerTransactions
+  // and executed by the network as part of the batch. The returned PackedTransaction still carries
+  // its own TransactionId (payer + validStart); further signatures use the inherited
+  // PackedTransaction.sign(...) / signableBodies() flow.
+  //
+  // batchKey names the Authority that must sign the *outer* BatchTransaction for this inner
+  // transaction to execute — the inner author's controlled opt-in to being batched. It is a
+  // TransactionBody field that must be fixed before signing, so it is taken here as a required
+  // parameter of the batch-pack entry point rather than a free-standing build-phase field: this
+  // makes "an inner transaction always has a batchKey" and "a non-batch transaction never has one"
+  // structural guarantees (illegal states unrepresentable) instead of preconditions the network has
+  // to reject. (Which transaction *types* may be batched remains a network-side policy the SDK
+  // cannot know; see transactions-batch.md.)
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> packForBatch(payer: Account, batchKey: Authority)
+
+  // The batch counterparts of the non-batch signing tiers, each mirroring its sign(...) sibling
+  // but without a nodes parameter (an inner batch transaction has a single body, nodeAccountID =
+  // 0.0.0) and without an ...AndSubmit form (it is never submitted on its own). Each takes the
+  // required batchKey, exactly as packForBatch.
+
+  // Operator convenience: pack for batch with the client's operator as payer + operator signature.
+  // Mirrors signWithOperator(client); the V3 equivalent of v2's batchify(client, batchKey).
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> signForBatchWithOperator(client: HieroClient, batchKey: Authority)
+
+  // A single Account both pays and signs. Mirrors sign(payer, nodes).
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> signForBatch(payer: Account, batchKey: Authority)
+
+  // Most general: the payer identity is decoupled from the signing mechanism (HSM, hardware wallet,
+  // paymaster). Mirrors sign(payerId, signer, nodes).
+  PackedTransaction<$$Receipt extends Receipt, $$Transaction extends Transaction<$$Receipt>> signForBatch(payerId: AccountId, signer: TransactionSigner, batchKey: Authority)
+
 }
 
 // PackedTransaction is a Submittable that yields a Response when handed to the network.
@@ -193,6 +228,15 @@ Record<$$Receipt extends Receipt> {
   @@immutable transactionId: TransactionId          // the id of the transaction
   @@immutable consensusTimestamp: zonedDateTime      // the consensus time of the transaction
   @@immutable receipt: $$Receipt                     // the typed receipt of the transaction
+
+  // For a child/triggered transaction — a batch inner transaction (consensusnode.transactions.batch),
+  // a scheduled transaction, or a contract-spawned child — the consensusTimestamp of the parent that
+  // spawned it; null for an ordinary top-level transaction. This is the link from a child record back
+  // to its parent. HAPI keys it on the consensus timestamp rather than a parent TransactionId because
+  // the consensus timestamp is the canonical, always-unique key of the record stream (children sit at
+  // nanosecond offsets adjacent to the parent), and not every child has an independent id — node-
+  // synthesized children share the parent's payer + validStart and are disambiguated only by a nonce.
+  @@immutable @@nullable parentConsensusTimestamp: zonedDateTime
 }
 
 // Factory methods for transaction loading
@@ -349,3 +393,18 @@ signed.submit(client);
   the loss-of-signatures problem is moot — but that lives above this layer, not as a flag on
   `Transaction`. Tracked in
   [`missing-features.md`](../../missing-features.md) section 1.9.
+
+- **`packForBatch(...)` and the `signForBatch(...)` tiers live on the base `Transaction` abstraction
+  (not on a `BatchTransaction` subtype) because *any* transaction may be an inner member of a batch
+  (HIP-551).** `packForBatch(...)` is a distinct pack entry point rather than an overload of
+  `pack(payer, nodes)` because an inner batch transaction produces a *single* body addressed to no
+  node (`nodeAccountID = 0.0.0`), so the per-node body fan-out and the `nodes` parameter do not apply.
+  The `batchKey` (the `Authority` that must sign the outer batch) is a `TransactionBody` field, so —
+  exactly like the `setRegenerateTransactionId` reasoning above — it must be fixed before signing.
+  It is taken as a **required parameter** of these batch-pack methods rather than modelled as a
+  free-standing build-phase field: doing so makes "an inner transaction always carries a `batchKey`"
+  and "a non-batch transaction never carries one" structural guarantees of the type system rather
+  than preconditions the network must reject. An earlier draft modelled `batchKey` as a `@@nullable`
+  field on `Transaction` with a `missing-batch-key-error` thrown by `packForBatch`; folding it into
+  the parameter removes both the nullable field and the error. The `BatchTransaction` container
+  itself is specified in [`transactions-batch.md`](transactions-batch.md).
