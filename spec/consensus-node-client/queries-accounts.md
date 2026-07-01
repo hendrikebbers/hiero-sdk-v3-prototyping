@@ -195,3 +195,20 @@ is typically empty — see *Questions & Comments*.
   need a typed receipt narrow the element at the language level (e.g. a pattern match / `instanceof`).
   This is the only place in the query specs that returns the base `Record` rather than a
   query-specific result type.
+
+## Testing
+
+Tests run against a local [solo](https://solo.hiero.org) network and are described as
+language-agnostic Given / When / Then scenarios. See
+[`guidelines/testing-guideline.md`](../../guidelines/testing-guideline.md) for the test
+platform, the solo lifecycle, and the shared *"`HieroClient` connected to a solo network with a
+funded operator account"* fixture referenced below.
+
+### `queries.accounts/balance-of-operator-succeeds`
+
+- **Given** a `HieroClient` connected to a solo network with a funded operator account.
+- **When** an `AccountBalanceQuery` with `accountId` set to the operator's account id is
+  submitted (`submit(client)`).
+- **Then** the call completes without error, returns a `QueryResponse<AccountBalance>` whose
+  `value.accountId` equals the operator's account id, and whose `value.balance` is greater than
+  zero (the operator is funded by solo's one-shot deployment).

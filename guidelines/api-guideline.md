@@ -4,6 +4,9 @@ This document outlines the best practices and conventions for designing and impl
 Following these guidelines will help ensure that APIs are consistent, easy to use, and maintainable.
 Next to that the guidelines define a syntax for documenting the APIs in a language-agnostic way for proposals.
 
+How specs are tested — the solo test platform and the per-spec `## Testing` section — is defined in a separate
+document: [Testing Guideline](testing-guideline.md).
+
 The [proposals](../proposals) folder contains design documents of new features or changes for our SDKs.
 Each proposal should include a section that documents the API in a language-agnostic way by using the guidelines defined
 in this document.
